@@ -719,6 +719,9 @@ export const Canvas: React.FC<CanvasProps> = ({ initialTables }) => {
                             isOverlapping,
                             highlightOverlappingTables,
                             hasHighlightedCustomType,
+                            remoteSelection: (
+                                prevNode as TableNodeType | undefined
+                            )?.data.remoteSelection,
                         },
                     };
                 }),
@@ -1776,6 +1779,8 @@ export const Canvas: React.FC<CanvasProps> = ({ initialTables }) => {
                     edges={edgesWithFloating}
                     onNodesChange={onNodesChangeHandler}
                     onEdgesChange={onEdgesChangeHandler}
+                    nodesDraggable={!readonly}
+                    nodesConnectable={!readonly}
                     maxZoom={5}
                     minZoom={0.1}
                     onConnect={onConnectHandler}
@@ -1795,7 +1800,7 @@ export const Canvas: React.FC<CanvasProps> = ({ initialTables }) => {
                     selectionMode={SelectionMode.Full}
                     onPaneClick={onPaneClickHandler}
                     connectionLineComponent={ConnectionLine}
-                    deleteKeyCode={['Backspace', 'Delete']}
+                    deleteKeyCode={readonly ? [] : ['Backspace', 'Delete']}
                     multiSelectionKeyCode={['Shift', 'Meta', 'Control']}
                 >
                     <Controls
