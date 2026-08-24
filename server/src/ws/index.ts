@@ -27,7 +27,12 @@ interface PatchMessage {
     payload: unknown;
 }
 
-type InboundMessage = JoinMessage | PatchMessage;
+interface SelectMessage {
+    type: 'select';
+    tableId: string | null;
+}
+
+type InboundMessage = JoinMessage | PatchMessage | SelectMessage;
 
 const parseMessage = (raw: unknown): InboundMessage | null => {
     if (typeof raw !== 'string') return null;
@@ -49,6 +54,12 @@ const parseMessage = (raw: unknown): InboundMessage | null => {
                 id: data.id,
                 payload: data.payload,
             };
+        }
+        if (
+            data?.type === 'select' &&
+            (data.tableId === null || typeof data.tableId === 'string')
+        ) {
+            return { type: 'select', tableId: data.tableId };
         }
         return null;
     } catch {
@@ -145,6 +156,16 @@ export const attachWebSocketServer = (httpServer: HttpServer) => {
                         },
                         client
                     );
+                    return;
+                }
+
+                if (message.type === 'select') {
+                    if (!client.diagramId) return;
+                    client.selectedTableId = message.tableId;
+                    broadcast(client.diagramId, {
+                        type: 'presence',
+                        users: presenceFor(client.diagramId),
+                    });
                 }
             });
 

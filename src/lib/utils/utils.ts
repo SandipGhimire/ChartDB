@@ -27,6 +27,28 @@ export const getInitials = (name: string | null, email: string): string => {
     return email.slice(0, 2).toUpperCase();
 };
 
+// Distinct from other on-canvas highlight colors (pink-600 for local
+// selection, blue-500 for overlap/custom-type highlights) so a remote
+// user's selection ring never looks like one of those states.
+const USER_COLOR_PALETTE = [
+    '#f97316', // orange-500
+    '#10b981', // emerald-500
+    '#8b5cf6', // violet-500
+    '#14b8a6', // teal-500
+    '#d946ef', // fuchsia-500
+    '#f43f5e', // rose-500
+    '#06b6d4', // cyan-500
+    '#84cc16', // lime-500
+];
+
+export const getUserColor = (userId: string): string => {
+    let hash = 0;
+    for (let i = 0; i < userId.length; i++) {
+        hash = (hash * 31 + userId.charCodeAt(i)) | 0;
+    }
+    return USER_COLOR_PALETTE[Math.abs(hash) % USER_COLOR_PALETTE.length];
+};
+
 export const getWorkspaceId = (): string => {
     let workspaceId = localStorage.getItem(UUID_KEY);
 

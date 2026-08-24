@@ -6,6 +6,7 @@ export interface WsClient {
     email: string;
     name: string | null;
     diagramId?: string;
+    selectedTableId?: string | null;
 }
 
 // In-memory, single-process. Fine for one self-hosted instance; would need
@@ -37,7 +38,12 @@ export const presenceFor = (diagramId: string) => {
     const room = rooms.get(diagramId);
     if (!room) return [];
     const seen = new Set<string>();
-    const users: { userId: string; email: string; name: string | null }[] = [];
+    const users: {
+        userId: string;
+        email: string;
+        name: string | null;
+        selectedTableId: string | null;
+    }[] = [];
     for (const client of room) {
         if (seen.has(client.userId)) continue;
         seen.add(client.userId);
@@ -45,6 +51,7 @@ export const presenceFor = (diagramId: string) => {
             userId: client.userId,
             email: client.email,
             name: client.name,
+            selectedTableId: client.selectedTableId ?? null,
         });
     }
     return users;

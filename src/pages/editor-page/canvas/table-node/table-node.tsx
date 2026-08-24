@@ -67,6 +67,8 @@ export type TableNodeType = Node<
         isRelationshipCreatingTarget?: boolean;
         // Map of fieldId -> number of edges targeting that field (for handle creation)
         targetEdgeCounts?: Record<string, number>;
+        // Another user currently has this table selected (live collab)
+        remoteSelection?: { color: string; label: string };
     },
     'table'
 >;
@@ -84,6 +86,7 @@ export const TableNode: React.FC<NodeProps<TableNodeType>> = React.memo(
             highlightTable,
             isRelationshipCreatingTarget,
             targetEdgeCounts,
+            remoteSelection,
         },
     }) => {
         const { updateTable, relationships, readonly } = useChartDB();
@@ -440,7 +443,14 @@ export const TableNode: React.FC<NodeProps<TableNodeType>> = React.memo(
                     />
                 ) : null}
                 <div
-                    className={tableClassName}
+                    className={cn(tableClassName, 'relative')}
+                    style={
+                        remoteSelection
+                            ? {
+                                  boxShadow: `0 0 0 2px ${remoteSelection.color}`,
+                              }
+                            : undefined
+                    }
                     onClick={(e) => {
                         if (e.detail === 2 && !readonly) {
                             e.stopPropagation();
@@ -471,6 +481,14 @@ export const TableNode: React.FC<NodeProps<TableNodeType>> = React.memo(
                         setHoveringTableId(null);
                     }}
                 >
+                    {remoteSelection ? (
+                        <div
+                            className="absolute -top-6 right-0 z-10 whitespace-nowrap rounded px-1.5 py-0.5 text-[10px] font-medium text-white"
+                            style={{ backgroundColor: remoteSelection.color }}
+                        >
+                            {remoteSelection.label}
+                        </div>
+                    ) : null}
                     <NodeResizer
                         isVisible={focused}
                         lineClassName="!border-none !w-2"

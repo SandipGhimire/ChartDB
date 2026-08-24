@@ -78,7 +78,10 @@ import {
 import type { Graph } from '@/lib/graph';
 import { removeVertex } from '@/lib/graph';
 import type { ChartDBEvent } from '@/context/chartdb-context/chartdb-context';
-import { cn, debounce, getOperatingSystem } from '@/lib/utils';
+import { cn, debounce, getOperatingSystem, getUserColor } from '@/lib/utils';
+import { useDiagramSocket } from '@/hooks/use-diagram-socket';
+import { useAuth } from '@/hooks/use-auth';
+import { PresenceStack } from '../top-navbar/presence-stack/presence-stack';
 import type { DependencyEdgeType } from './dependency-edge/dependency-edge';
 import { DependencyEdge } from './dependency-edge/dependency-edge';
 import {
@@ -322,6 +325,8 @@ export const Canvas: React.FC<CanvasProps> = ({ initialTables }) => {
     const { effectiveTheme } = useTheme();
     const { scrollAction, showDBViews, showMiniMapOnCanvas } = useLocalConfig();
     const { isMd: isDesktop } = useBreakpoint('md');
+    const { presence, sendSelect } = useDiagramSocket();
+    const { user } = useAuth();
     const [highlightOverlappingTables, setHighlightOverlappingTables] =
         useState(false);
     const {
@@ -530,6 +535,49 @@ export const Canvas: React.FC<CanvasProps> = ({ initialTables }) => {
 
         setSelectedTableIds(selectedNodesIds);
     }, [nodes, setSelectedTableIds, selectedTableIds]);
+
+    // Broadcast our own selection so other users see it highlighted live
+    useEffect(() => {
+        sendSelect(selectedTableIds[0] ?? null);
+    }, [selectedTableIds, sendSelect]);
+
+    // Other users' current table selections, keyed by table id
+    const remoteSelections = useMemo(() => {
+        const map = new Map<string, { color: string; label: string }>();
+        for (const presenceUser of presence) {
+            if (
+                !presenceUser.selectedTableId ||
+                presenceUser.userId === user?.id
+            ) {
+                continue;
+            }
+            map.set(presenceUser.selectedTableId, {
+                color: getUserColor(presenceUser.userId),
+                label: presenceUser.name ?? presenceUser.email,
+            });
+        }
+        return map;
+    }, [presence, user?.id]);
+
+    // Surgical update: apply remote selection highlights without triggering
+    // the expensive full node recalculation above
+    useEffect(() => {
+        setNodes((nds) => {
+            let hasChanges = false;
+            const updatedNodes = nds.map((node) => {
+                if (node.type !== 'table') return node;
+                const remoteSelection = remoteSelections.get(node.id);
+                const current = (node as TableNodeType).data.remoteSelection;
+                if (equal(remoteSelection, current)) return node;
+                hasChanges = true;
+                return {
+                    ...node,
+                    data: { ...node.data, remoteSelection },
+                };
+            });
+            return hasChanges ? updatedNodes : nds;
+        });
+    }, [remoteSelections, setNodes]);
 
     useEffect(() => {
         const selectedEdgesIds = edges
@@ -1951,6 +1999,7 @@ export const Canvas: React.FC<CanvasProps> = ({ initialTables }) => {
                     {showFilter ? (
                         <CanvasFilter onClose={() => setShowFilter(false)} />
                     ) : null}
+                    <PresenceStack />
                 </ReactFlow>
                 <MarkerDefinitions />
             </div>

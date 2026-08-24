@@ -6,7 +6,6 @@ import { ThemeNav } from './theme-nav/theme-nav';
 import { Menu } from './menu/menu';
 import { UserMenu } from './user-menu/user-menu';
 import { SidePanelToggle } from './side-panel-toggle/side-panel-toggle';
-import { PresenceStack } from './presence-stack/presence-stack';
 
 export interface TopNavbarProps {}
 
@@ -22,7 +21,6 @@ export const TopNavbar: React.FC<TopNavbarProps> = () => {
             <DiagramName />
             <div className="hidden flex-1 items-center justify-end gap-2 sm:flex">
                 <LastSaved />
-                <PresenceStack />
                 <ThemeNav />
                 <LanguageNav />
                 <UserMenu />
