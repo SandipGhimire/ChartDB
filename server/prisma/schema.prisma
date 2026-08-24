@@ -1,0 +1,214 @@
+datasource db {
+    provider = "postgresql"
+    url      = env("DATABASE_URL")
+}
+
+generator client {
+    provider = "prisma-client-js"
+}
+
+enum GlobalRole {
+    ADMIN
+    USER
+}
+
+model User {
+    id                String     @id @default(uuid())
+    email             String     @unique
+    passwordHash      String
+    name              String?
+    role              GlobalRole @default(USER)
+    isActive          Boolean    @default(true)
+    defaultDiagramId  String?
+    createdAt         DateTime   @default(now())
+    updatedAt         DateTime   @updatedAt
+
+    sessions    Session[]
+    memberships DiagramMember[]
+    auditLogs   AuditLog[]
+
+    @@map("users")
+}
+
+model Session {
+    id        String   @id @default(uuid())
+    userId    String
+    user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+    expiresAt DateTime
+    userAgent String?
+    ipAddress String?
+    createdAt DateTime @default(now())
+
+    @@index([userId])
+    @@map("sessions")
+}
+
+enum DiagramRole {
+    OWNER
+    EDITOR
+    VIEWER
+}
+
+model Diagram {
+    id              String   @id
+    name            String
+    databaseType    String
+    databaseEdition String?
+    createdAt       DateTime @default(now())
+    updatedAt       DateTime @updatedAt
+
+    members       DiagramMember[]
+    tables        DbTable[]
+    relationships DbRelationship[]
+    dependencies  DbDependency[]
+    areas         Area[]
+    customTypes   DbCustomType[]
+    notes         Note[]
+    filter        DiagramFilter?
+
+    @@map("diagrams")
+}
+
+model DiagramMember {
+    id        String      @id @default(uuid())
+    diagramId String
+    diagram   Diagram     @relation(fields: [diagramId], references: [id], onDelete: Cascade)
+    userId    String
+    user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+    role      DiagramRole
+    createdAt DateTime    @default(now())
+
+    @@unique([diagramId, userId])
+    @@index([userId])
+    @@map("diagram_members")
+}
+
+model DbTable {
+    id                 String   @id
+    diagramId          String
+    diagram            Diagram  @relation(fields: [diagramId], references: [id], onDelete: Cascade)
+    name               String
+    schema             String?
+    x                  Float
+    y                  Float
+    fields             Json
+    indexes            Json
+    checkConstraints   Json?
+    color              String
+    isView             Boolean  @default(false)
+    isMaterializedView Boolean?
+    createdAt          BigInt
+    width              Float?
+    comments           String?
+    order              Float?
+    expanded           Boolean?
+    parentAreaId       String?
+
+    @@index([diagramId])
+    @@map("db_tables")
+}
+
+model DbRelationship {
+    id                String  @id
+    diagramId         String
+    diagram           Diagram @relation(fields: [diagramId], references: [id], onDelete: Cascade)
+    name              String
+    sourceSchema      String?
+    sourceTableId     String
+    targetSchema      String?
+    targetTableId     String
+    sourceFieldId     String
+    targetFieldId     String
+    sourceCardinality String
+    targetCardinality String
+    createdAt         BigInt
+
+    @@index([diagramId])
+    @@map("db_relationships")
+}
+
+model DbDependency {
+    id               String  @id
+    diagramId        String
+    diagram          Diagram @relation(fields: [diagramId], references: [id], onDelete: Cascade)
+    schema           String?
+    tableId          String
+    dependentSchema  String?
+    dependentTableId String
+    createdAt        BigInt
+
+    @@index([diagramId])
+    @@map("db_dependencies")
+}
+
+model Area {
+    id        String  @id
+    diagramId String
+    diagram   Diagram @relation(fields: [diagramId], references: [id], onDelete: Cascade)
+    name      String
+    x         Float
+    y         Float
+    width     Float
+    height    Float
+    color     String
+    order     Float?
+
+    @@index([diagramId])
+    @@map("areas")
+}
+
+model DbCustomType {
+    id        String  @id
+    diagramId String
+    diagram   Diagram @relation(fields: [diagramId], references: [id], onDelete: Cascade)
+    schema    String?
+    name      String
+    kind      String
+    values    Json?
+    fields    Json?
+    order     Float?
+
+    @@index([diagramId])
+    @@map("db_custom_types")
+}
+
+model Note {
+    id        String  @id
+    diagramId String
+    diagram   Diagram @relation(fields: [diagramId], references: [id], onDelete: Cascade)
+    content   String
+    x         Float
+    y         Float
+    width     Float
+    height    Float
+    color     String
+    order     Float?
+
+    @@index([diagramId])
+    @@map("notes")
+}
+
+model DiagramFilter {
+    diagramId String  @id
+    diagram   Diagram @relation(fields: [diagramId], references: [id], onDelete: Cascade)
+    schemaIds Json?
+    tableIds  Json?
+
+    @@map("diagram_filters")
+}
+
+model AuditLog {
+    id          String   @id @default(uuid())
+    actorUserId String?
+    actor       User?    @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
+    action      String
+    targetType  String
+    targetId    String?
+    diagramId   String?
+    metadata    Json?
+    createdAt   DateTime @default(now())
+
+    @@index([createdAt])
+    @@index([actorUserId])
+    @@map("audit_logs")
+}

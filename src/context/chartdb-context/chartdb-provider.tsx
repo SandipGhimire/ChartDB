@@ -280,7 +280,7 @@ export const ChartDBProvider: React.FC<
                 attributes: { name, updatedAt },
             });
 
-            if (options.updateHistory) {
+            if (options.updateHistory && !options.skipPersist) {
                 addUndoAction({
                     action: 'updateDiagramName',
                     redoData: { name },
@@ -304,19 +304,23 @@ export const ChartDBProvider: React.FC<
             setTables((currentTables) => [...currentTables, ...tablesToAdd]);
             const updatedAt = new Date();
             setDiagramUpdatedAt(updatedAt);
-            await Promise.all([
-                db.updateDiagram({ id: diagramId, attributes: { updatedAt } }),
-                ...tablesToAdd.map((table) =>
-                    db.addTable({ diagramId, table })
-                ),
-            ]);
+            if (!options.skipPersist)
+                await Promise.all([
+                    db.updateDiagram({
+                        id: diagramId,
+                        attributes: { updatedAt },
+                    }),
+                    ...tablesToAdd.map((table) =>
+                        db.addTable({ diagramId, table })
+                    ),
+                ]);
 
             events.emit({
                 action: 'add_tables',
                 data: { tables: tablesToAdd },
             });
 
-            if (options.updateHistory) {
+            if (options.updateHistory && !options.skipPersist) {
                 addUndoAction({
                     action: 'addTables',
                     redoData: { tables: tablesToAdd },
@@ -423,18 +427,29 @@ export const ChartDBProvider: React.FC<
 
             const updatedAt = new Date();
             setDiagramUpdatedAt(updatedAt);
-            await Promise.all([
-                db.updateDiagram({ id: diagramId, attributes: { updatedAt } }),
-                ...relationshipsToRemove.map((relationship) =>
-                    db.deleteRelationship({ diagramId, id: relationship.id })
-                ),
-                ...dependenciesToRemove.map((dependency) =>
-                    db.deleteDependency({ diagramId, id: dependency.id })
-                ),
-                ...ids.map((id) => db.deleteTable({ diagramId, id })),
-            ]);
+            if (!options?.skipPersist)
+                await Promise.all([
+                    db.updateDiagram({
+                        id: diagramId,
+                        attributes: { updatedAt },
+                    }),
+                    ...relationshipsToRemove.map((relationship) =>
+                        db.deleteRelationship({
+                            diagramId,
+                            id: relationship.id,
+                        })
+                    ),
+                    ...dependenciesToRemove.map((dependency) =>
+                        db.deleteDependency({ diagramId, id: dependency.id })
+                    ),
+                    ...ids.map((id) => db.deleteTable({ diagramId, id })),
+                ]);
 
-            if (tables.length > 0 && options?.updateHistory) {
+            if (
+                tables.length > 0 &&
+                options?.updateHistory &&
+                !options?.skipPersist
+            ) {
                 addUndoAction({
                     action: 'removeTables',
                     redoData: {
@@ -487,12 +502,16 @@ export const ChartDBProvider: React.FC<
 
             const updatedAt = new Date();
             setDiagramUpdatedAt(updatedAt);
-            await Promise.all([
-                db.updateDiagram({ id: diagramId, attributes: { updatedAt } }),
-                db.updateTable({ id, attributes: table }),
-            ]);
+            if (!options.skipPersist)
+                await Promise.all([
+                    db.updateDiagram({
+                        id: diagramId,
+                        attributes: { updatedAt },
+                    }),
+                    db.updateTable({ id, attributes: table }),
+                ]);
 
-            if (!!prevTable && options.updateHistory) {
+            if (!!prevTable && options.updateHistory && !options.skipPersist) {
                 addUndoAction({
                     action: 'updateTable',
                     redoData: { tableId: id, table },
@@ -560,23 +579,34 @@ export const ChartDBProvider: React.FC<
                 )
             );
 
-            setRelationships((relationships) =>
-                relationships.filter(
-                    (relationship) =>
-                        !relationshipsToRemove.some(
-                            (r) => r.id === relationship.id
-                        )
-                )
-            );
+            // Only touch relationships/dependencies state when something is
+            // actually being removed — this function runs on every position
+            // change during a table drag, and an unconditional `.filter()`
+            // here would hand out a new array reference on every frame even
+            // when nothing changed, retriggering effects keyed on those
+            // arrays (e.g. the edge-rebuild effect, which briefly unmounts
+            // and remounts every edge when it fires).
+            if (relationshipsToRemove.length > 0) {
+                setRelationships((relationships) =>
+                    relationships.filter(
+                        (relationship) =>
+                            !relationshipsToRemove.some(
+                                (r) => r.id === relationship.id
+                            )
+                    )
+                );
+            }
 
-            setDependencies((dependencies) =>
-                dependencies.filter(
-                    (dependency) =>
-                        !dependenciesToRemove.some(
-                            (d) => d.id === dependency.id
-                        )
-                )
-            );
+            if (dependenciesToRemove.length > 0) {
+                setDependencies((dependencies) =>
+                    dependencies.filter(
+                        (dependency) =>
+                            !dependenciesToRemove.some(
+                                (d) => d.id === dependency.id
+                            )
+                    )
+                );
+            }
 
             setTables(updateTables);
 
@@ -619,7 +649,7 @@ export const ChartDBProvider: React.FC<
 
             await Promise.all(promises);
 
-            if (options.updateHistory) {
+            if (options.updateHistory && !options.skipPersist) {
                 addUndoAction({
                     action: 'updateTablesState',
                     redoData: { tables: updatedTables },
@@ -694,17 +724,21 @@ export const ChartDBProvider: React.FC<
 
             const updatedAt = new Date();
             setDiagramUpdatedAt(updatedAt);
-            await Promise.all([
-                db.updateDiagram({ id: diagramId, attributes: { updatedAt } }),
-                db.updateTable({
-                    id: tableId,
-                    attributes: {
-                        ...updateTableFn(table),
-                    },
-                }),
-            ]);
+            if (!options.skipPersist)
+                await Promise.all([
+                    db.updateDiagram({
+                        id: diagramId,
+                        attributes: { updatedAt },
+                    }),
+                    db.updateTable({
+                        id: tableId,
+                        attributes: {
+                            ...updateTableFn(table),
+                        },
+                    }),
+                ]);
 
-            if (!!prevField && options.updateHistory) {
+            if (!!prevField && options.updateHistory && !options.skipPersist) {
                 addUndoAction({
                     action: 'updateField',
                     redoData: {
@@ -767,17 +801,21 @@ export const ChartDBProvider: React.FC<
 
             const updatedAt = new Date();
             setDiagramUpdatedAt(updatedAt);
-            await Promise.all([
-                db.updateDiagram({ id: diagramId, attributes: { updatedAt } }),
-                db.updateTable({
-                    id: tableId,
-                    attributes: {
-                        ...updateTableFn(table),
-                    },
-                }),
-            ]);
+            if (!options.skipPersist)
+                await Promise.all([
+                    db.updateDiagram({
+                        id: diagramId,
+                        attributes: { updatedAt },
+                    }),
+                    db.updateTable({
+                        id: tableId,
+                        attributes: {
+                            ...updateTableFn(table),
+                        },
+                    }),
+                ]);
 
-            if (!!prevField && options.updateHistory) {
+            if (!!prevField && options.updateHistory && !options.skipPersist) {
                 addUndoAction({
                     action: 'removeField',
                     redoData: { tableId, fieldId },
@@ -840,11 +878,15 @@ export const ChartDBProvider: React.FC<
 
             const updatedAt = new Date();
             setDiagramUpdatedAt(updatedAt);
-            await Promise.all([
-                db.updateDiagram({ id: diagramId, attributes: { updatedAt } }),
-            ]);
+            if (!options.skipPersist)
+                await Promise.all([
+                    db.updateDiagram({
+                        id: diagramId,
+                        attributes: { updatedAt },
+                    }),
+                ]);
 
-            if (options.updateHistory) {
+            if (options.updateHistory && !options.skipPersist) {
                 addUndoAction({
                     action: 'addField',
                     redoData: { tableId, field },
@@ -913,18 +955,22 @@ export const ChartDBProvider: React.FC<
 
             const updatedAt = new Date();
             setDiagramUpdatedAt(updatedAt);
-            await Promise.all([
-                db.updateDiagram({ id: diagramId, attributes: { updatedAt } }),
-                db.updateTable({
-                    id: tableId,
-                    attributes: {
-                        ...dbTable,
-                        indexes: [...dbTable.indexes, index],
-                    },
-                }),
-            ]);
+            if (!options.skipPersist)
+                await Promise.all([
+                    db.updateDiagram({
+                        id: diagramId,
+                        attributes: { updatedAt },
+                    }),
+                    db.updateTable({
+                        id: tableId,
+                        attributes: {
+                            ...dbTable,
+                            indexes: [...dbTable.indexes, index],
+                        },
+                    }),
+                ]);
 
-            if (options.updateHistory) {
+            if (options.updateHistory && !options.skipPersist) {
                 addUndoAction({
                     action: 'addIndex',
                     redoData: { tableId, index },
@@ -967,20 +1013,24 @@ export const ChartDBProvider: React.FC<
 
             const updatedAt = new Date();
             setDiagramUpdatedAt(updatedAt);
-            await Promise.all([
-                db.updateDiagram({ id: diagramId, attributes: { updatedAt } }),
-                db.updateTable({
-                    id: tableId,
-                    attributes: {
-                        ...dbTable,
-                        indexes: dbTable.indexes.filter(
-                            (i) => i.id !== indexId
-                        ),
-                    },
-                }),
-            ]);
+            if (!options.skipPersist)
+                await Promise.all([
+                    db.updateDiagram({
+                        id: diagramId,
+                        attributes: { updatedAt },
+                    }),
+                    db.updateTable({
+                        id: tableId,
+                        attributes: {
+                            ...dbTable,
+                            indexes: dbTable.indexes.filter(
+                                (i) => i.id !== indexId
+                            ),
+                        },
+                    }),
+                ]);
 
-            if (!!prevIndex && options.updateHistory) {
+            if (!!prevIndex && options.updateHistory && !options.skipPersist) {
                 addUndoAction({
                     action: 'removeIndex',
                     redoData: { indexId, tableId },
@@ -1039,20 +1089,24 @@ export const ChartDBProvider: React.FC<
 
             const updatedAt = new Date();
             setDiagramUpdatedAt(updatedAt);
-            await Promise.all([
-                db.updateDiagram({ id: diagramId, attributes: { updatedAt } }),
-                db.updateTable({
-                    id: tableId,
-                    attributes: {
-                        ...dbTable,
-                        indexes: dbTable.indexes.map((i) =>
-                            i.id === indexId ? { ...i, ...index } : i
-                        ),
-                    },
-                }),
-            ]);
+            if (!options.skipPersist)
+                await Promise.all([
+                    db.updateDiagram({
+                        id: diagramId,
+                        attributes: { updatedAt },
+                    }),
+                    db.updateTable({
+                        id: tableId,
+                        attributes: {
+                            ...dbTable,
+                            indexes: dbTable.indexes.map((i) =>
+                                i.id === indexId ? { ...i, ...index } : i
+                            ),
+                        },
+                    }),
+                ]);
 
-            if (!!prevIndex && options.updateHistory) {
+            if (!!prevIndex && options.updateHistory && !options.skipPersist) {
                 addUndoAction({
                     action: 'updateIndex',
                     redoData: { tableId, indexId, index },
@@ -1092,24 +1146,25 @@ export const ChartDBProvider: React.FC<
 
                 const updatedAt = new Date();
                 setDiagramUpdatedAt(updatedAt);
-                await Promise.all([
-                    db.updateDiagram({
-                        id: diagramId,
-                        attributes: { updatedAt },
-                    }),
-                    db.updateTable({
-                        id: tableId,
-                        attributes: {
-                            ...dbTable,
-                            checkConstraints: [
-                                ...(dbTable.checkConstraints ?? []),
-                                constraint,
-                            ],
-                        },
-                    }),
-                ]);
+                if (!options.skipPersist)
+                    await Promise.all([
+                        db.updateDiagram({
+                            id: diagramId,
+                            attributes: { updatedAt },
+                        }),
+                        db.updateTable({
+                            id: tableId,
+                            attributes: {
+                                ...dbTable,
+                                checkConstraints: [
+                                    ...(dbTable.checkConstraints ?? []),
+                                    constraint,
+                                ],
+                            },
+                        }),
+                    ]);
 
-                if (options.updateHistory) {
+                if (options.updateHistory && !options.skipPersist) {
                     addUndoAction({
                         action: 'addCheckConstraint',
                         redoData: { tableId, constraint },
@@ -1169,23 +1224,28 @@ export const ChartDBProvider: React.FC<
 
                 const updatedAt = new Date();
                 setDiagramUpdatedAt(updatedAt);
-                await Promise.all([
-                    db.updateDiagram({
-                        id: diagramId,
-                        attributes: { updatedAt },
-                    }),
-                    db.updateTable({
-                        id: tableId,
-                        attributes: {
-                            ...dbTable,
-                            checkConstraints: (
-                                dbTable.checkConstraints ?? []
-                            ).filter((c) => c.id !== constraintId),
-                        },
-                    }),
-                ]);
+                if (!options.skipPersist)
+                    await Promise.all([
+                        db.updateDiagram({
+                            id: diagramId,
+                            attributes: { updatedAt },
+                        }),
+                        db.updateTable({
+                            id: tableId,
+                            attributes: {
+                                ...dbTable,
+                                checkConstraints: (
+                                    dbTable.checkConstraints ?? []
+                                ).filter((c) => c.id !== constraintId),
+                            },
+                        }),
+                    ]);
 
-                if (!!prevConstraint && options.updateHistory) {
+                if (
+                    !!prevConstraint &&
+                    options.updateHistory &&
+                    !options.skipPersist
+                ) {
                     addUndoAction({
                         action: 'removeCheckConstraint',
                         redoData: { tableId, constraintId },
@@ -1234,27 +1294,32 @@ export const ChartDBProvider: React.FC<
 
                 const updatedAt = new Date();
                 setDiagramUpdatedAt(updatedAt);
-                await Promise.all([
-                    db.updateDiagram({
-                        id: diagramId,
-                        attributes: { updatedAt },
-                    }),
-                    db.updateTable({
-                        id: tableId,
-                        attributes: {
-                            ...dbTable,
-                            checkConstraints: (
-                                dbTable.checkConstraints ?? []
-                            ).map((c) =>
-                                c.id === constraintId
-                                    ? { ...c, ...constraint }
-                                    : c
-                            ),
-                        },
-                    }),
-                ]);
+                if (!options.skipPersist)
+                    await Promise.all([
+                        db.updateDiagram({
+                            id: diagramId,
+                            attributes: { updatedAt },
+                        }),
+                        db.updateTable({
+                            id: tableId,
+                            attributes: {
+                                ...dbTable,
+                                checkConstraints: (
+                                    dbTable.checkConstraints ?? []
+                                ).map((c) =>
+                                    c.id === constraintId
+                                        ? { ...c, ...constraint }
+                                        : c
+                                ),
+                            },
+                        }),
+                    ]);
 
-                if (!!prevConstraint && options.updateHistory) {
+                if (
+                    !!prevConstraint &&
+                    options.updateHistory &&
+                    !options.skipPersist
+                ) {
                     addUndoAction({
                         action: 'updateCheckConstraint',
                         redoData: { tableId, constraintId, constraint },
@@ -1283,14 +1348,18 @@ export const ChartDBProvider: React.FC<
             const updatedAt = new Date();
             setDiagramUpdatedAt(updatedAt);
 
-            await Promise.all([
-                ...relationships.map((relationship) =>
-                    db.addRelationship({ diagramId, relationship })
-                ),
-                db.updateDiagram({ id: diagramId, attributes: { updatedAt } }),
-            ]);
+            if (!options.skipPersist)
+                await Promise.all([
+                    ...relationships.map((relationship) =>
+                        db.addRelationship({ diagramId, relationship })
+                    ),
+                    db.updateDiagram({
+                        id: diagramId,
+                        attributes: { updatedAt },
+                    }),
+                ]);
 
-            if (options.updateHistory) {
+            if (options.updateHistory && !options.skipPersist) {
                 addUndoAction({
                     action: 'addRelationships',
                     redoData: { relationships },
@@ -1379,17 +1448,22 @@ export const ChartDBProvider: React.FC<
 
                 const updatedAt = new Date();
                 setDiagramUpdatedAt(updatedAt);
-                await Promise.all([
-                    ...ids.map((id) =>
-                        db.deleteRelationship({ diagramId, id })
-                    ),
-                    db.updateDiagram({
-                        id: diagramId,
-                        attributes: { updatedAt },
-                    }),
-                ]);
+                if (!options.skipPersist)
+                    await Promise.all([
+                        ...ids.map((id) =>
+                            db.deleteRelationship({ diagramId, id })
+                        ),
+                        db.updateDiagram({
+                            id: diagramId,
+                            attributes: { updatedAt },
+                        }),
+                    ]);
 
-                if (prevRelationships.length > 0 && options.updateHistory) {
+                if (
+                    prevRelationships.length > 0 &&
+                    options.updateHistory &&
+                    !options.skipPersist
+                ) {
                     addUndoAction({
                         action: 'removeRelationships',
                         redoData: { relationshipsIds: ids },
@@ -1432,15 +1506,20 @@ export const ChartDBProvider: React.FC<
 
                 const updatedAt = new Date();
                 setDiagramUpdatedAt(updatedAt);
-                await Promise.all([
-                    db.updateDiagram({
-                        id: diagramId,
-                        attributes: { updatedAt },
-                    }),
-                    db.updateRelationship({ id, attributes: relationship }),
-                ]);
+                if (!options.skipPersist)
+                    await Promise.all([
+                        db.updateDiagram({
+                            id: diagramId,
+                            attributes: { updatedAt },
+                        }),
+                        db.updateRelationship({ id, attributes: relationship }),
+                    ]);
 
-                if (!!prevRelationship && options.updateHistory) {
+                if (
+                    !!prevRelationship &&
+                    options.updateHistory &&
+                    !options.skipPersist
+                ) {
                     addUndoAction({
                         action: 'updateRelationship',
                         redoData: { relationshipId: id, relationship },
@@ -1475,14 +1554,18 @@ export const ChartDBProvider: React.FC<
             const updatedAt = new Date();
             setDiagramUpdatedAt(updatedAt);
 
-            await Promise.all([
-                ...dependencies.map((dependency) =>
-                    db.addDependency({ diagramId, dependency })
-                ),
-                db.updateDiagram({ id: diagramId, attributes: { updatedAt } }),
-            ]);
+            if (!options.skipPersist)
+                await Promise.all([
+                    ...dependencies.map((dependency) =>
+                        db.addDependency({ diagramId, dependency })
+                    ),
+                    db.updateDiagram({
+                        id: diagramId,
+                        attributes: { updatedAt },
+                    }),
+                ]);
 
-            if (options.updateHistory) {
+            if (options.updateHistory && !options.skipPersist) {
                 addUndoAction({
                     action: 'addDependencies',
                     redoData: { dependencies },
@@ -1547,15 +1630,22 @@ export const ChartDBProvider: React.FC<
 
                 const updatedAt = new Date();
                 setDiagramUpdatedAt(updatedAt);
-                await Promise.all([
-                    ...ids.map((id) => db.deleteDependency({ diagramId, id })),
-                    db.updateDiagram({
-                        id: diagramId,
-                        attributes: { updatedAt },
-                    }),
-                ]);
+                if (!options.skipPersist)
+                    await Promise.all([
+                        ...ids.map((id) =>
+                            db.deleteDependency({ diagramId, id })
+                        ),
+                        db.updateDiagram({
+                            id: diagramId,
+                            attributes: { updatedAt },
+                        }),
+                    ]);
 
-                if (prevDependencies.length > 0 && options.updateHistory) {
+                if (
+                    prevDependencies.length > 0 &&
+                    options.updateHistory &&
+                    !options.skipPersist
+                ) {
                     addUndoAction({
                         action: 'removeDependencies',
                         redoData: { dependenciesIds: ids },
@@ -1596,12 +1686,20 @@ export const ChartDBProvider: React.FC<
 
             const updatedAt = new Date();
             setDiagramUpdatedAt(updatedAt);
-            await Promise.all([
-                db.updateDiagram({ id: diagramId, attributes: { updatedAt } }),
-                db.updateDependency({ id, attributes: dependency }),
-            ]);
+            if (!options.skipPersist)
+                await Promise.all([
+                    db.updateDiagram({
+                        id: diagramId,
+                        attributes: { updatedAt },
+                    }),
+                    db.updateDependency({ id, attributes: dependency }),
+                ]);
 
-            if (!!prevDependency && options.updateHistory) {
+            if (
+                !!prevDependency &&
+                options.updateHistory &&
+                !options.skipPersist
+            ) {
                 addUndoAction({
                     action: 'updateDependency',
                     redoData: { dependencyId: id, dependency },
@@ -1628,12 +1726,16 @@ export const ChartDBProvider: React.FC<
             const updatedAt = new Date();
             setDiagramUpdatedAt(updatedAt);
 
-            await Promise.all([
-                ...areas.map((area) => db.addArea({ diagramId, area })),
-                db.updateDiagram({ id: diagramId, attributes: { updatedAt } }),
-            ]);
+            if (!options.skipPersist)
+                await Promise.all([
+                    ...areas.map((area) => db.addArea({ diagramId, area })),
+                    db.updateDiagram({
+                        id: diagramId,
+                        attributes: { updatedAt },
+                    }),
+                ]);
 
-            if (options.updateHistory) {
+            if (options.updateHistory && !options.skipPersist) {
                 addUndoAction({
                     action: 'addAreas',
                     redoData: { areas },
@@ -1688,12 +1790,20 @@ export const ChartDBProvider: React.FC<
             const updatedAt = new Date();
             setDiagramUpdatedAt(updatedAt);
 
-            await Promise.all([
-                ...ids.map((id) => db.deleteArea({ diagramId, id })),
-                db.updateDiagram({ id: diagramId, attributes: { updatedAt } }),
-            ]);
+            if (!options.skipPersist)
+                await Promise.all([
+                    ...ids.map((id) => db.deleteArea({ diagramId, id })),
+                    db.updateDiagram({
+                        id: diagramId,
+                        attributes: { updatedAt },
+                    }),
+                ]);
 
-            if (prevAreas.length > 0 && options.updateHistory) {
+            if (
+                prevAreas.length > 0 &&
+                options.updateHistory &&
+                !options.skipPersist
+            ) {
                 addUndoAction({
                     action: 'removeAreas',
                     redoData: { areaIds: ids },
@@ -1727,12 +1837,16 @@ export const ChartDBProvider: React.FC<
             const updatedAt = new Date();
             setDiagramUpdatedAt(updatedAt);
 
-            await Promise.all([
-                db.updateDiagram({ id: diagramId, attributes: { updatedAt } }),
-                db.updateArea({ id, attributes: area }),
-            ]);
+            if (!options.skipPersist)
+                await Promise.all([
+                    db.updateDiagram({
+                        id: diagramId,
+                        attributes: { updatedAt },
+                    }),
+                    db.updateArea({ id, attributes: area }),
+                ]);
 
-            if (!!prevArea && options.updateHistory) {
+            if (!!prevArea && options.updateHistory && !options.skipPersist) {
                 addUndoAction({
                     action: 'updateArea',
                     redoData: { areaId: id, area },
@@ -1752,12 +1866,16 @@ export const ChartDBProvider: React.FC<
             const updatedAt = new Date();
             setDiagramUpdatedAt(updatedAt);
 
-            await Promise.all([
-                ...notes.map((note) => db.addNote({ diagramId, note })),
-                db.updateDiagram({ id: diagramId, attributes: { updatedAt } }),
-            ]);
+            if (!options.skipPersist)
+                await Promise.all([
+                    ...notes.map((note) => db.addNote({ diagramId, note })),
+                    db.updateDiagram({
+                        id: diagramId,
+                        attributes: { updatedAt },
+                    }),
+                ]);
 
-            if (options.updateHistory) {
+            if (options.updateHistory && !options.skipPersist) {
                 addUndoAction({
                     action: 'addNotes',
                     redoData: { notes },
@@ -1812,12 +1930,20 @@ export const ChartDBProvider: React.FC<
             const updatedAt = new Date();
             setDiagramUpdatedAt(updatedAt);
 
-            await Promise.all([
-                ...ids.map((id) => db.deleteNote({ diagramId, id })),
-                db.updateDiagram({ id: diagramId, attributes: { updatedAt } }),
-            ]);
+            if (!options.skipPersist)
+                await Promise.all([
+                    ...ids.map((id) => db.deleteNote({ diagramId, id })),
+                    db.updateDiagram({
+                        id: diagramId,
+                        attributes: { updatedAt },
+                    }),
+                ]);
 
-            if (prevNotes.length > 0 && options.updateHistory) {
+            if (
+                prevNotes.length > 0 &&
+                options.updateHistory &&
+                !options.skipPersist
+            ) {
                 addUndoAction({
                     action: 'removeNotes',
                     redoData: { noteIds: ids },
@@ -1851,12 +1977,16 @@ export const ChartDBProvider: React.FC<
             const updatedAt = new Date();
             setDiagramUpdatedAt(updatedAt);
 
-            await Promise.all([
-                db.updateDiagram({ id: diagramId, attributes: { updatedAt } }),
-                db.updateNote({ id, attributes: note }),
-            ]);
+            if (!options.skipPersist)
+                await Promise.all([
+                    db.updateDiagram({
+                        id: diagramId,
+                        attributes: { updatedAt },
+                    }),
+                    db.updateNote({ id, attributes: note }),
+                ]);
 
-            if (!!prevNote && options.updateHistory) {
+            if (!!prevNote && options.updateHistory && !options.skipPersist) {
                 addUndoAction({
                     action: 'updateNote',
                     redoData: { noteId: id, note },
@@ -1966,14 +2096,18 @@ export const ChartDBProvider: React.FC<
             const updatedAt = new Date();
             setDiagramUpdatedAt(updatedAt);
 
-            await Promise.all([
-                db.updateDiagram({ id: diagramId, attributes: { updatedAt } }),
-                ...customTypes.map((customType) =>
-                    db.addCustomType({ diagramId, customType })
-                ),
-            ]);
+            if (!options.skipPersist)
+                await Promise.all([
+                    db.updateDiagram({
+                        id: diagramId,
+                        attributes: { updatedAt },
+                    }),
+                    ...customTypes.map((customType) =>
+                        db.addCustomType({ diagramId, customType })
+                    ),
+                ]);
 
-            if (options.updateHistory) {
+            if (options.updateHistory && !options.skipPersist) {
                 addUndoAction({
                     action: 'addCustomTypes',
                     redoData: { customTypes },
@@ -2022,12 +2156,20 @@ export const ChartDBProvider: React.FC<
             const updatedAt = new Date();
             setDiagramUpdatedAt(updatedAt);
 
-            await Promise.all([
-                db.updateDiagram({ id: diagramId, attributes: { updatedAt } }),
-                ...ids.map((id) => db.deleteCustomType({ diagramId, id })),
-            ]);
+            if (!options.skipPersist)
+                await Promise.all([
+                    db.updateDiagram({
+                        id: diagramId,
+                        attributes: { updatedAt },
+                    }),
+                    ...ids.map((id) => db.deleteCustomType({ diagramId, id })),
+                ]);
 
-            if (typesToRemove.length > 0 && options.updateHistory) {
+            if (
+                typesToRemove.length > 0 &&
+                options.updateHistory &&
+                !options.skipPersist
+            ) {
                 addUndoAction({
                     action: 'removeCustomTypes',
                     redoData: {
@@ -2071,12 +2213,20 @@ export const ChartDBProvider: React.FC<
             const updatedAt = new Date();
             setDiagramUpdatedAt(updatedAt);
 
-            await Promise.all([
-                db.updateDiagram({ id: diagramId, attributes: { updatedAt } }),
-                db.updateCustomType({ id, attributes: customType }),
-            ]);
+            if (!options.skipPersist)
+                await Promise.all([
+                    db.updateDiagram({
+                        id: diagramId,
+                        attributes: { updatedAt },
+                    }),
+                    db.updateCustomType({ id, attributes: customType }),
+                ]);
 
-            if (!!prevCustomType && options.updateHistory) {
+            if (
+                !!prevCustomType &&
+                options.updateHistory &&
+                !options.skipPersist
+            ) {
                 addUndoAction({
                     action: 'updateCustomType',
                     redoData: { customTypeId: id, customType },
@@ -2095,93 +2245,185 @@ export const ChartDBProvider: React.FC<
         ]
     );
 
+    // Rebuilding this object fresh every render forces every consumer to
+    // re-render too — context updates bypass React.memo entirely, so a
+    // single-node drag (which never changes any of these values) was
+    // fanning out into a re-render of every table on the canvas. Memoize
+    // so the value only changes reference when something in it actually
+    // does.
+    const value = useMemo(
+        () => ({
+            diagramId,
+            diagramName,
+            databaseType,
+            tables,
+            relationships,
+            dependencies,
+            areas,
+            notes,
+            currentDiagram,
+            schemas,
+            events,
+            readonly,
+            updateDiagramData,
+            updateDiagramId,
+            updateDiagramName,
+            loadDiagram,
+            loadDiagramFromData,
+            updateDatabaseType,
+            updateDatabaseEdition,
+            clearDiagramData,
+            deleteDiagram,
+            updateDiagramUpdatedAt,
+            createTable,
+            addTable,
+            addTables,
+            getTable,
+            removeTable,
+            removeTables,
+            updateTable,
+            updateTablesState,
+            updateField,
+            removeField,
+            createField,
+            addField,
+            addIndex,
+            createIndex,
+            removeIndex,
+            getField,
+            getIndex,
+            updateIndex,
+            createCheckConstraint,
+            addCheckConstraint,
+            removeCheckConstraint,
+            updateCheckConstraint,
+            addRelationship,
+            addRelationships,
+            createRelationship,
+            getRelationship,
+            removeRelationship,
+            removeRelationships,
+            updateRelationship,
+            addDependency,
+            addDependencies,
+            createDependency,
+            getDependency,
+            removeDependency,
+            removeDependencies,
+            updateDependency,
+            createArea,
+            addArea,
+            addAreas,
+            getArea,
+            removeArea,
+            removeAreas,
+            updateArea,
+            customTypes,
+            createCustomType,
+            addCustomType,
+            addCustomTypes,
+            getCustomType,
+            removeCustomType,
+            removeCustomTypes,
+            updateCustomType,
+            highlightCustomTypeId,
+            highlightedCustomType,
+            createNote,
+            addNote,
+            addNotes,
+            getNote,
+            removeNote,
+            removeNotes,
+            updateNote,
+        }),
+        [
+            diagramId,
+            diagramName,
+            databaseType,
+            tables,
+            relationships,
+            dependencies,
+            areas,
+            notes,
+            currentDiagram,
+            schemas,
+            events,
+            readonly,
+            updateDiagramData,
+            updateDiagramId,
+            updateDiagramName,
+            loadDiagram,
+            loadDiagramFromData,
+            updateDatabaseType,
+            updateDatabaseEdition,
+            clearDiagramData,
+            deleteDiagram,
+            updateDiagramUpdatedAt,
+            createTable,
+            addTable,
+            addTables,
+            getTable,
+            removeTable,
+            removeTables,
+            updateTable,
+            updateTablesState,
+            updateField,
+            removeField,
+            createField,
+            addField,
+            addIndex,
+            createIndex,
+            removeIndex,
+            getField,
+            getIndex,
+            updateIndex,
+            createCheckConstraint,
+            addCheckConstraint,
+            removeCheckConstraint,
+            updateCheckConstraint,
+            addRelationship,
+            addRelationships,
+            createRelationship,
+            getRelationship,
+            removeRelationship,
+            removeRelationships,
+            updateRelationship,
+            addDependency,
+            addDependencies,
+            createDependency,
+            getDependency,
+            removeDependency,
+            removeDependencies,
+            updateDependency,
+            createArea,
+            addArea,
+            addAreas,
+            getArea,
+            removeArea,
+            removeAreas,
+            updateArea,
+            customTypes,
+            createCustomType,
+            addCustomType,
+            addCustomTypes,
+            getCustomType,
+            removeCustomType,
+            removeCustomTypes,
+            updateCustomType,
+            highlightCustomTypeId,
+            highlightedCustomType,
+            createNote,
+            addNote,
+            addNotes,
+            getNote,
+            removeNote,
+            removeNotes,
+            updateNote,
+        ]
+    );
+
     return (
-        <chartDBContext.Provider
-            value={{
-                diagramId,
-                diagramName,
-                databaseType,
-                tables,
-                relationships,
-                dependencies,
-                areas,
-                notes,
-                currentDiagram,
-                schemas,
-                events,
-                readonly,
-                updateDiagramData,
-                updateDiagramId,
-                updateDiagramName,
-                loadDiagram,
-                loadDiagramFromData,
-                updateDatabaseType,
-                updateDatabaseEdition,
-                clearDiagramData,
-                deleteDiagram,
-                updateDiagramUpdatedAt,
-                createTable,
-                addTable,
-                addTables,
-                getTable,
-                removeTable,
-                removeTables,
-                updateTable,
-                updateTablesState,
-                updateField,
-                removeField,
-                createField,
-                addField,
-                addIndex,
-                createIndex,
-                removeIndex,
-                getField,
-                getIndex,
-                updateIndex,
-                createCheckConstraint,
-                addCheckConstraint,
-                removeCheckConstraint,
-                updateCheckConstraint,
-                addRelationship,
-                addRelationships,
-                createRelationship,
-                getRelationship,
-                removeRelationship,
-                removeRelationships,
-                updateRelationship,
-                addDependency,
-                addDependencies,
-                createDependency,
-                getDependency,
-                removeDependency,
-                removeDependencies,
-                updateDependency,
-                createArea,
-                addArea,
-                addAreas,
-                getArea,
-                removeArea,
-                removeAreas,
-                updateArea,
-                customTypes,
-                createCustomType,
-                addCustomType,
-                addCustomTypes,
-                getCustomType,
-                removeCustomType,
-                removeCustomTypes,
-                updateCustomType,
-                highlightCustomTypeId,
-                highlightedCustomType,
-                createNote,
-                addNote,
-                addNotes,
-                getNote,
-                removeNote,
-                removeNotes,
-                updateNote,
-            }}
-        >
+        <chartDBContext.Provider value={value}>
             {children}
         </chartDBContext.Provider>
     );

@@ -87,7 +87,6 @@ export const TableNode: React.FC<NodeProps<TableNodeType>> = React.memo(
         },
     }) => {
         const { updateTable, relationships, readonly } = useChartDB();
-        const edges = useStore((store) => store.edges) as EdgeType[];
         const {
             openTableFromSidebar,
             selectSidebarSection,
@@ -208,21 +207,32 @@ export const TableNode: React.FC<NodeProps<TableNodeType>> = React.memo(
         const { isDiffTableChanged, isDiffNewTable, isDiffTableRemoved } =
             diffState;
 
-        const selectedRelEdges: RelationshipEdgeType[] = useMemo(() => {
-            if (edges.length === 0) return [];
-
-            const relEdges: RelationshipEdgeType[] = [];
-            for (const edge of edges) {
-                if (
-                    edge.type === 'relationship-edge' &&
-                    (edge.source === id || edge.target === id) &&
-                    (edge.selected || edge.data?.highlighted)
-                ) {
-                    relEdges.push(edge as RelationshipEdgeType);
-                }
-            }
-            return relEdges;
-        }, [edges, id]);
+        const selectedRelEdges: RelationshipEdgeType[] = useStore(
+            useCallback(
+                (store) => {
+                    const relEdges: RelationshipEdgeType[] = [];
+                    for (const edge of store.edges as EdgeType[]) {
+                        if (
+                            edge.type === 'relationship-edge' &&
+                            (edge.source === id || edge.target === id) &&
+                            (edge.selected || edge.data?.highlighted)
+                        ) {
+                            relEdges.push(edge as RelationshipEdgeType);
+                        }
+                    }
+                    return relEdges;
+                },
+                [id]
+            ),
+            (a, b) =>
+                a.length === b.length &&
+                a.every(
+                    (edge, i) =>
+                        edge.id === b[i]?.id &&
+                        edge.selected === b[i]?.selected &&
+                        edge.data?.highlighted === b[i]?.data?.highlighted
+                )
+        );
 
         const highlightedFieldIds = useMemo(() => {
             const fieldIds = new Set<string>();

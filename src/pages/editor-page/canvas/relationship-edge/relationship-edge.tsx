@@ -1,7 +1,12 @@
 import React, { useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import type { Edge, EdgeProps } from '@xyflow/react';
-import { getSmoothStepPath, Position, useReactFlow } from '@xyflow/react';
+import {
+    getSmoothStepPath,
+    Position,
+    useReactFlow,
+    useStore,
+} from '@xyflow/react';
 import type { DBRelationship, Cardinality } from '@/lib/domain/db-relationship';
 import { RIGHT_HANDLE_ID_PREFIX } from '../table-node/table-node-field';
 import { useChartDB } from '@/hooks/use-chartdb';
@@ -34,13 +39,28 @@ export const RelationshipEdge: React.FC<EdgeProps<RelationshipEdgeType>> =
             selected,
             data,
         }) => {
-            const { getInternalNode, getEdge } = useReactFlow();
+            const { getInternalNode, getEdge, getNodes } = useReactFlow();
+            // Obstacle collision-detection below is O(tables) — cheap once,
+            // but source/target position deps make this memo re-run on
+            // every animation frame while either end is being dragged, so
+            // that cost would otherwise run per frame too. Skip it while
+            // actively dragging (route with the plain offset instead) and
+            // let it settle once the drag stops and `tables` commits.
+            const isDraggingEndpoint = useStore(
+                (s) =>
+                    (s.nodeLookup.get(source)?.dragging ?? false) ||
+                    (s.nodeLookup.get(target)?.dragging ?? false)
+            );
             const { checkIfRelationshipRemoved, checkIfNewRelationship } =
                 useDiff();
             const { showCardinality } = useLocalConfig();
 
-            const { relationships, updateRelationship, removeRelationship } =
-                useChartDB();
+            const {
+                tables,
+                relationships,
+                updateRelationship,
+                removeRelationship,
+            } = useChartDB();
             const {
                 editRelationshipPopover,
                 openRelationshipPopover,
@@ -286,6 +306,64 @@ export const RelationshipEdge: React.FC<EdgeProps<RelationshipEdgeType>> =
                 const roundedSourceY = Math.round(sourceY);
                 const roundedTargetY = Math.round(targetY);
 
+                const baseOffset =
+                    (edgeNumber + 1 + (showCardinality ? 1.5 : 0)) * 14;
+
+                // Tables are often arranged in a stacked column, and the
+                // step-out offset controls how far the trunk of the line
+                // sits from source/target before turning — too small and
+                // it routes straight through whatever sits between them.
+                // Check the actual bounding boxes of every other table and
+                // push the trunk out until it clears them (or we give up
+                // after a few tries). Heuristic, not true pathfinding —
+                // doesn't handle every layout, but clears the common case
+                // of a table sitting directly between source and target.
+                // `tables` isn't used directly below — its only job is to
+                // widen this memo's deps so a move/resize of ANY other
+                // table (not just this edge's own source/target) forces a
+                // re-check against the fresh obstacle positions pulled from
+                // getNodes(). Table drags only commit to `tables` once on
+                // release (not per drag frame), so this stays cheap.
+                void tables;
+
+                let offset = baseOffset;
+                if (!isDraggingEndpoint) {
+                    const direction = sourceSide === 'left' ? -1 : 1;
+                    const minY = Math.min(roundedSourceY, roundedTargetY);
+                    const maxY = Math.max(roundedSourceY, roundedTargetY);
+                    const obstacles = getNodes().filter(
+                        (node) =>
+                            node.type === 'table' &&
+                            node.id !== source &&
+                            node.id !== target
+                    );
+
+                    const clearanceMargin = 6;
+                    for (let attempt = 0; attempt < 6; attempt++) {
+                        const trunkX = roundedSourceX + direction * offset;
+                        const blocked = obstacles.some((node) => {
+                            const width =
+                                node.measured?.width ?? node.width ?? 0;
+                            const height =
+                                node.measured?.height ?? node.height ?? 0;
+                            const left = node.position.x - clearanceMargin;
+                            const right =
+                                node.position.x + width + clearanceMargin;
+                            const top = node.position.y - clearanceMargin;
+                            const bottom =
+                                node.position.y + height + clearanceMargin;
+                            return (
+                                trunkX >= left &&
+                                trunkX <= right &&
+                                maxY >= top &&
+                                minY <= bottom
+                            );
+                        });
+                        if (!blocked) break;
+                        offset += 40;
+                    }
+                }
+
                 const [path] = getSmoothStepPath({
                     sourceX: roundedSourceX,
                     sourceY: roundedSourceY,
@@ -296,7 +374,7 @@ export const RelationshipEdge: React.FC<EdgeProps<RelationshipEdgeType>> =
                         sourceSide === 'left' ? Position.Left : Position.Right,
                     targetPosition:
                         targetSide === 'left' ? Position.Left : Position.Right,
-                    offset: (edgeNumber + 1 + (showCardinality ? 1.5 : 0)) * 14,
+                    offset,
                 });
                 return path;
             }, [
@@ -310,6 +388,11 @@ export const RelationshipEdge: React.FC<EdgeProps<RelationshipEdgeType>> =
                 targetSide,
                 edgeNumber,
                 showCardinality,
+                getNodes,
+                source,
+                target,
+                tables,
+                isDraggingEndpoint,
             ]);
 
             const sourceMarker = useMemo(

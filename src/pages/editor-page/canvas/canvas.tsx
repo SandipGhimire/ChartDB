@@ -88,6 +88,7 @@ import {
 } from './table-node/table-node-dependency-indicator';
 import type { DatabaseType } from '@/lib/domain/database-type';
 import { useCanvas } from '@/hooks/use-canvas';
+import { useHoveringTableId } from '@/hooks/use-hovering-table-id';
 import type { AreaNodeType } from './area-node/area-node';
 import { AreaNode } from './area-node/area-node';
 import type { Area } from '@/lib/domain/area';
@@ -123,7 +124,18 @@ import { defaultSchemas } from '@/lib/data/default-schemas';
 import { useDiff } from '@/context/diff-context/use-diff';
 import { useClickAway } from 'react-use';
 
-const HIGHLIGHTED_EDGE_Z_INDEX = 1;
+// React Flow always paints its whole node layer above its whole edge layer
+// (EdgeRenderer and NodeRenderer are fixed siblings in that order — a node's
+// zIndex can never pull it below an edge or vice versa). So a table body
+// already tucks in front of any relationship/dependency line that crosses
+// it; these two constants only break ties *within* each layer (table vs.
+// area/temp nodes, edge vs. edge), keeping stacking order deterministic
+// instead of depending on array order, which changes with drag/creation
+// order.
+// Kept constant across highlighted/unhighlighted state — React Flow appears
+// to unmount/remount an edge's SVG when its zIndex prop changes, so we rely
+// on `data.highlighted`/`animated` for the highlight look instead.
+const TABLE_NODE_Z_INDEX = 0;
 const DEFAULT_EDGE_Z_INDEX = 0;
 
 export type EdgeType =
@@ -205,6 +217,7 @@ const tableToTableNode = (
             targetEdgeCounts,
         },
         width: table.width ?? MIN_TABLE_SIZE,
+        zIndex: TABLE_NODE_Z_INDEX,
         hidden,
     };
 };
@@ -320,11 +333,11 @@ export const Canvas: React.FC<CanvasProps> = ({ initialTables }) => {
         setEditTableModeTable,
         tempFloatingEdge,
         endFloatingEdgeCreation,
-        hoveringTableId,
         hideCreateRelationshipNode,
         closeRelationshipPopover,
         events: canvasEvents,
     } = useCanvas();
+    const hoveringTableId = useHoveringTableId();
     const {
         filter,
         loading: filterLoading,
@@ -404,10 +417,26 @@ export const Canvas: React.FC<CanvasProps> = ({ initialTables }) => {
         }
     }, [isInitialLoadingNodes, fitView]);
 
+    // Stable string key: content-equal (by value) across renders where only
+    // table positions/fields changed, so it doesn't retrigger the handle
+    // re-registration effect below on every drag frame — only when the set
+    // of table ids actually changes.
+    const tableIdsKey = useMemo(
+        () => tables.map((t) => t.id).join(','),
+        [tables]
+    );
+    const tableNodeIds = useMemo(
+        () => (tableIdsKey ? tableIdsKey.split(',') : []),
+        [tableIdsKey]
+    );
+
     useEffect(() => {
         // Force React Flow to re-register handles for all table nodes
-        // This ensures handles exist before edges reference them
-        const tableNodeIds = tables.map((t) => t.id);
+        // This ensures handles exist before edges reference them.
+        // Deliberately keyed on tableNodeIds (identity), not `tables`
+        // (data) — re-running this on every position change during a drag
+        // forces React Flow to re-measure every handle, which can blank
+        // all edges for a frame.
         if (tableNodeIds.length > 0) {
             updateNodeInternals(tableNodeIds);
         }
@@ -486,7 +515,7 @@ export const Canvas: React.FC<CanvasProps> = ({ initialTables }) => {
         dependencies,
         setEdges,
         showDBViews,
-        tables,
+        tableNodeIds,
         updateNodeInternals,
     ]);
 
@@ -540,16 +569,20 @@ export const Canvas: React.FC<CanvasProps> = ({ initialTables }) => {
                     if (
                         currentHighlighted === shouldBeHighlighted &&
                         currentAnimated === shouldBeHighlighted &&
-                        currentZIndex ===
-                            (shouldBeHighlighted
-                                ? HIGHLIGHTED_EDGE_Z_INDEX
-                                : DEFAULT_EDGE_Z_INDEX)
+                        currentZIndex === DEFAULT_EDGE_Z_INDEX
                     ) {
                         return edge;
                     }
 
                     hasChanges = true;
 
+                    // zIndex deliberately stays constant here — React Flow
+                    // appears to unmount/remount an edge's SVG when its
+                    // zIndex prop changes (rather than just restyling it),
+                    // which caused every edge to blank for a frame whenever
+                    // a table got selected/deselected (e.g. on every drag).
+                    // The highlight look itself comes from `data.highlighted`
+                    // / `animated`, not stacking order.
                     if (edge.type === 'dependency-edge') {
                         const dependencyEdge = edge as DependencyEdgeType;
                         return {
@@ -559,9 +592,7 @@ export const Canvas: React.FC<CanvasProps> = ({ initialTables }) => {
                                 highlighted: shouldBeHighlighted,
                             },
                             animated: shouldBeHighlighted,
-                            zIndex: shouldBeHighlighted
-                                ? HIGHLIGHTED_EDGE_Z_INDEX
-                                : DEFAULT_EDGE_Z_INDEX,
+                            zIndex: DEFAULT_EDGE_Z_INDEX,
                         };
                     } else {
                         const relationshipEdge = edge as RelationshipEdgeType;
@@ -572,9 +603,7 @@ export const Canvas: React.FC<CanvasProps> = ({ initialTables }) => {
                                 highlighted: shouldBeHighlighted,
                             },
                             animated: shouldBeHighlighted,
-                            zIndex: shouldBeHighlighted
-                                ? HIGHLIGHTED_EDGE_Z_INDEX
-                                : DEFAULT_EDGE_Z_INDEX,
+                            zIndex: DEFAULT_EDGE_Z_INDEX,
                         };
                     }
                 });
@@ -594,6 +623,10 @@ export const Canvas: React.FC<CanvasProps> = ({ initialTables }) => {
         });
 
         setNodes((prevNodes) => {
+            const prevNodesById = new Map(
+                prevNodes.map((node) => [node.id, node])
+            );
+
             const newNodes = [
                 ...tables.map((table) => {
                     const isOverlapping =
@@ -627,8 +660,15 @@ export const Canvas: React.FC<CanvasProps> = ({ initialTables }) => {
                         );
                     }
 
+                    // tableToTableNode doesn't know about selection state —
+                    // carry it forward from the previous render, or every
+                    // table data change (including a position update from
+                    // dragging) would silently deselect the table.
+                    const prevNode = prevNodesById.get(table.id);
+
                     return {
                         ...node,
+                        selected: prevNode?.selected ?? false,
                         data: {
                             ...node.data,
                             isOverlapping,
@@ -964,9 +1004,20 @@ export const Canvas: React.FC<CanvasProps> = ({ initialTables }) => {
         [nodes, overlapGraph, setOverlapGraph, getNode]
     );
 
-    const updateOverlappingGraphOnChangesDebounced = debounce(
-        updateOverlappingGraphOnChanges,
-        200
+    const updateOverlappingGraphOnChangesRef = useRef(
+        updateOverlappingGraphOnChanges
+    );
+    updateOverlappingGraphOnChangesRef.current =
+        updateOverlappingGraphOnChanges;
+
+    const updateOverlappingGraphOnChangesDebounced = useMemo(
+        () =>
+            debounce(
+                (args: Parameters<typeof updateOverlappingGraphOnChanges>[0]) =>
+                    updateOverlappingGraphOnChangesRef.current(args),
+                200
+            ),
+        []
     );
 
     const findRelevantNodesChanges = useCallback(

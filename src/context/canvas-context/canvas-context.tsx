@@ -67,7 +67,6 @@ export interface CanvasContext {
         sourceNodeId: string;
     }) => void;
     endFloatingEdgeCreation: () => void;
-    hoveringTableId: string | null;
     setHoveringTableId: React.Dispatch<React.SetStateAction<string | null>>;
     showCreateRelationshipNode: (params: {
         sourceTableId: string;
@@ -95,9 +94,18 @@ export const canvasContext = createContext<CanvasContext>({
     setTempFloatingEdge: emptyFn,
     startFloatingEdgeCreation: emptyFn,
     endFloatingEdgeCreation: emptyFn,
-    hoveringTableId: null,
     setHoveringTableId: emptyFn,
     showCreateRelationshipNode: emptyFn,
     hideCreateRelationshipNode: emptyFn,
     events: new EventEmitter(),
 });
+
+// Split out of CanvasContext deliberately: every TableNode instance calls
+// setHoveringTableId on mouse enter/leave (including cursor movement during
+// a pane pan, which crosses many tables), but only ever writes it — reading
+// this context would re-render every table on every hover transition. The
+// setter is bundled with the rest of CanvasContext (it's referentially
+// stable, so that alone wouldn't cause extra renders), but the *value* gets
+// its own context so only the one place that reads it (Canvas, for in-progress
+// relationship creation) subscribes to its changes.
+export const hoveringTableIdContext = createContext<string | null>(null);

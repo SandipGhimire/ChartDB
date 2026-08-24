@@ -4,6 +4,10 @@ import { createBrowserRouter } from 'react-router-dom';
 import type { TemplatePageLoaderData } from './pages/template-page/template-page';
 import type { TemplatesPageLoaderData } from './pages/templates-page/templates-page';
 import { getTemplatesAndAllTags } from './templates-data/template-utils';
+import {
+    ProtectedRoute,
+    AdminRoute,
+} from './components/protected-route/protected-route';
 
 const routes: RouteObject[] = [
     ...['', 'diagrams/:diagramId'].map((path) => ({
@@ -13,10 +17,50 @@ const routes: RouteObject[] = [
                 await import('./pages/editor-page/editor-page');
 
             return {
-                element: <EditorPage />,
+                element: (
+                    <ProtectedRoute>
+                        <EditorPage />
+                    </ProtectedRoute>
+                ),
             };
         },
     })),
+    {
+        path: 'login',
+        async lazy() {
+            const { LoginPage } = await import('./pages/login-page/login-page');
+            return {
+                element: <LoginPage />,
+            };
+        },
+    },
+    {
+        path: 'profile',
+        async lazy() {
+            const { ProfilePage } =
+                await import('./pages/profile-page/profile-page');
+            return {
+                element: (
+                    <ProtectedRoute>
+                        <ProfilePage />
+                    </ProtectedRoute>
+                ),
+            };
+        },
+    },
+    {
+        path: 'admin/*',
+        async lazy() {
+            const { AdminPage } = await import('./pages/admin-page/admin-page');
+            return {
+                element: (
+                    <AdminRoute>
+                        <AdminPage />
+                    </AdminRoute>
+                ),
+            };
+        },
+    },
     {
         path: 'examples',
         async lazy() {

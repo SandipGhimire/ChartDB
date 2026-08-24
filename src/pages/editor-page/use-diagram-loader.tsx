@@ -4,6 +4,8 @@ import { useDialog } from '@/hooks/use-dialog';
 import { useFullScreenLoader } from '@/hooks/use-full-screen-spinner';
 import { useRedoUndoStack } from '@/hooks/use-redo-undo-stack';
 import { useStorage } from '@/hooks/use-storage';
+import { useDiagramRole } from '@/hooks/use-diagram-role';
+import type { DiagramRole } from '@/context/diagram-role-context/diagram-role-context';
 import type { Diagram } from '@/lib/domain/diagram';
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -18,6 +20,7 @@ export const useDiagramLoader = () => {
     const { openCreateDiagramDialog, openOpenDiagramDialog } = useDialog();
     const navigate = useNavigate();
     const { listDiagrams } = useStorage();
+    const { setDiagramRole } = useDiagramRole();
 
     const currentDiagramLoadingRef = useRef<string | undefined>(undefined);
 
@@ -33,6 +36,7 @@ export const useDiagramLoader = () => {
         const loadDefaultDiagram = async () => {
             if (diagramId) {
                 setInitialDiagram(undefined);
+                setDiagramRole(undefined);
                 showLoader();
                 resetRedoStack();
                 resetUndoStack();
@@ -44,6 +48,10 @@ export const useDiagramLoader = () => {
                 }
 
                 setInitialDiagram(diagram);
+                setDiagramRole(
+                    (diagram as Diagram & { currentUserRole?: DiagramRole })
+                        .currentUserRole
+                );
                 hideLoader();
 
                 return;
@@ -84,6 +92,7 @@ export const useDiagramLoader = () => {
         resetUndoStack,
         hideLoader,
         showLoader,
+        setDiagramRole,
         currentDiagram?.id,
         openOpenDiagramDialog,
     ]);

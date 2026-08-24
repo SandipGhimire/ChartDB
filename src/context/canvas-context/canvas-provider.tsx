@@ -4,9 +4,10 @@ import React, {
     useState,
     useEffect,
     useRef,
+    useMemo,
 } from 'react';
 import type { CanvasContext, CanvasEvent } from './canvas-context';
-import { canvasContext } from './canvas-context';
+import { canvasContext, hoveringTableIdContext } from './canvas-context';
 import { useChartDB } from '@/hooks/use-chartdb';
 import { adjustTablePositions } from '@/lib/domain/db-table';
 import { useReactFlow } from '@xyflow/react';
@@ -222,32 +223,65 @@ export const CanvasProvider = ({ children }: CanvasProviderProps) => {
             [screenToFlowPosition, setNodes]
         );
 
+    // Same reasoning as the hoveringTableId split above: an inline object
+    // here would give every render of this provider (e.g. the debounced
+    // overlap-graph update that fires mid-drag) a new context value, which
+    // forces every useCanvas() consumer to re-render — every table on the
+    // canvas — even though most of them don't read the field that changed.
+    const value = useMemo(
+        () => ({
+            reorderTables,
+            fitView,
+            setOverlapGraph,
+            overlapGraph,
+            setShowFilter,
+            showFilter,
+            editTableModeTable,
+            setEditTableModeTable,
+            openRelationshipPopover,
+            closeRelationshipPopover,
+            editRelationshipPopover,
+            tempFloatingEdge,
+            setTempFloatingEdge,
+            startFloatingEdgeCreation,
+            endFloatingEdgeCreation,
+            setHoveringTableId,
+            showCreateRelationshipNode,
+            hideCreateRelationshipNode,
+            events,
+        }),
+        [
+            reorderTables,
+            fitView,
+            setOverlapGraph,
+            overlapGraph,
+            setShowFilter,
+            showFilter,
+            editTableModeTable,
+            setEditTableModeTable,
+            openRelationshipPopover,
+            closeRelationshipPopover,
+            editRelationshipPopover,
+            tempFloatingEdge,
+            setTempFloatingEdge,
+            startFloatingEdgeCreation,
+            endFloatingEdgeCreation,
+            setHoveringTableId,
+            showCreateRelationshipNode,
+            hideCreateRelationshipNode,
+            events,
+        ]
+    );
+
     return (
-        <canvasContext.Provider
-            value={{
-                reorderTables,
-                fitView,
-                setOverlapGraph,
-                overlapGraph,
-                setShowFilter,
-                showFilter,
-                editTableModeTable,
-                setEditTableModeTable,
-                openRelationshipPopover,
-                closeRelationshipPopover,
-                editRelationshipPopover,
-                tempFloatingEdge: tempFloatingEdge,
-                setTempFloatingEdge: setTempFloatingEdge,
-                startFloatingEdgeCreation: startFloatingEdgeCreation,
-                endFloatingEdgeCreation: endFloatingEdgeCreation,
-                hoveringTableId,
-                setHoveringTableId,
-                showCreateRelationshipNode,
-                hideCreateRelationshipNode,
-                events,
-            }}
-        >
-            {children}
+        <canvasContext.Provider value={value}>
+            {/* Split out of the main context value — every table writes to
+            this on hover, and reading hoveringTableId here (rather than
+            bundled above) means only components that actually read it
+            re-render on hover changes, not every consumer of useCanvas(). */}
+            <hoveringTableIdContext.Provider value={hoveringTableId}>
+                {children}
+            </hoveringTableIdContext.Provider>
         </canvasContext.Provider>
     );
 };

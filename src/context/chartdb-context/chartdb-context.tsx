@@ -88,7 +88,7 @@ export interface ChartDBContext {
     updateDiagramId: (id: string) => Promise<void>;
     updateDiagramName: (
         name: string,
-        options?: { updateHistory: boolean }
+        options?: { updateHistory: boolean; skipPersist?: boolean }
     ) => Promise<void>;
     loadDiagram: (diagramId: string) => Promise<Diagram | undefined>;
     loadDiagramFromData: (diagram: Diagram) => void;
@@ -110,29 +110,33 @@ export interface ChartDBContext {
     ) => Promise<DBTable>;
     addTable: (
         table: DBTable,
-        options?: { updateHistory: boolean }
+        options?: { updateHistory: boolean; skipPersist?: boolean }
     ) => Promise<void>;
     addTables: (
         tables: DBTable[],
-        options?: { updateHistory: boolean }
+        options?: { updateHistory: boolean; skipPersist?: boolean }
     ) => Promise<void>;
     getTable: (id: string) => DBTable | null;
     removeTable: (
         id: string,
-        options?: { updateHistory: boolean }
+        options?: { updateHistory: boolean; skipPersist?: boolean }
     ) => Promise<void>;
     removeTables: (
         ids: string[],
-        options?: { updateHistory: boolean }
+        options?: { updateHistory: boolean; skipPersist?: boolean }
     ) => Promise<void>;
     updateTable: (
         id: string,
         table: Partial<DBTable>,
-        options?: { updateHistory: boolean }
+        options?: { updateHistory: boolean; skipPersist?: boolean }
     ) => Promise<void>;
     updateTablesState: (
         updateFn: (tables: DBTable[]) => PartialExcept<DBTable, 'id'>[],
-        options?: { updateHistory: boolean; forceOverride?: boolean }
+        options?: {
+            updateHistory: boolean;
+            forceOverride?: boolean;
+            skipPersist?: boolean;
+        }
     ) => Promise<void>;
 
     // Field operations
@@ -141,18 +145,18 @@ export interface ChartDBContext {
         tableId: string,
         fieldId: string,
         field: Partial<DBField>,
-        options?: { updateHistory: boolean }
+        options?: { updateHistory: boolean; skipPersist?: boolean }
     ) => Promise<void>;
     removeField: (
         tableId: string,
         fieldId: string,
-        options?: { updateHistory: boolean }
+        options?: { updateHistory: boolean; skipPersist?: boolean }
     ) => Promise<void>;
     createField: (tableId: string) => Promise<DBField>;
     addField: (
         tableId: string,
         field: DBField,
-        options?: { updateHistory: boolean }
+        options?: { updateHistory: boolean; skipPersist?: boolean }
     ) => Promise<void>;
 
     // Index operations
@@ -160,19 +164,19 @@ export interface ChartDBContext {
     addIndex: (
         tableId: string,
         index: DBIndex,
-        options?: { updateHistory: boolean }
+        options?: { updateHistory: boolean; skipPersist?: boolean }
     ) => Promise<void>;
     getIndex: (tableId: string, indexId: string) => DBIndex | null;
     removeIndex: (
         tableId: string,
         indexId: string,
-        options?: { updateHistory: boolean }
+        options?: { updateHistory: boolean; skipPersist?: boolean }
     ) => Promise<void>;
     updateIndex: (
         tableId: string,
         indexId: string,
         index: Partial<DBIndex>,
-        options?: { updateHistory: boolean }
+        options?: { updateHistory: boolean; skipPersist?: boolean }
     ) => Promise<void>;
 
     // Check constraint operations
@@ -180,18 +184,18 @@ export interface ChartDBContext {
     addCheckConstraint: (
         tableId: string,
         constraint: DBCheckConstraint,
-        options?: { updateHistory: boolean }
+        options?: { updateHistory: boolean; skipPersist?: boolean }
     ) => Promise<void>;
     removeCheckConstraint: (
         tableId: string,
         constraintId: string,
-        options?: { updateHistory: boolean }
+        options?: { updateHistory: boolean; skipPersist?: boolean }
     ) => Promise<void>;
     updateCheckConstraint: (
         tableId: string,
         constraintId: string,
         constraint: Partial<DBCheckConstraint>,
-        options?: { updateHistory: boolean }
+        options?: { updateHistory: boolean; skipPersist?: boolean }
     ) => Promise<void>;
 
     // Relationship operations
@@ -203,25 +207,25 @@ export interface ChartDBContext {
     }) => Promise<DBRelationship>;
     addRelationship: (
         relationship: DBRelationship,
-        options?: { updateHistory: boolean }
+        options?: { updateHistory: boolean; skipPersist?: boolean }
     ) => Promise<void>;
     addRelationships: (
         relationships: DBRelationship[],
-        options?: { updateHistory: boolean }
+        options?: { updateHistory: boolean; skipPersist?: boolean }
     ) => Promise<void>;
     getRelationship: (id: string) => DBRelationship | null;
     removeRelationship: (
         id: string,
-        options?: { updateHistory: boolean }
+        options?: { updateHistory: boolean; skipPersist?: boolean }
     ) => Promise<void>;
     removeRelationships: (
         ids: string[],
-        options?: { updateHistory: boolean }
+        options?: { updateHistory: boolean; skipPersist?: boolean }
     ) => Promise<void>;
     updateRelationship: (
         id: string,
         relationship: Partial<DBRelationship>,
-        options?: { updateHistory: boolean }
+        options?: { updateHistory: boolean; skipPersist?: boolean }
     ) => Promise<void>;
 
     // Dependency operations
@@ -231,75 +235,75 @@ export interface ChartDBContext {
     }) => Promise<DBDependency>;
     addDependency: (
         dependency: DBDependency,
-        options?: { updateHistory: boolean }
+        options?: { updateHistory: boolean; skipPersist?: boolean }
     ) => Promise<void>;
     addDependencies: (
         dependencies: DBDependency[],
-        options?: { updateHistory: boolean }
+        options?: { updateHistory: boolean; skipPersist?: boolean }
     ) => Promise<void>;
     getDependency: (id: string) => DBDependency | null;
     removeDependency: (
         id: string,
-        options?: { updateHistory: boolean }
+        options?: { updateHistory: boolean; skipPersist?: boolean }
     ) => Promise<void>;
     removeDependencies: (
         ids: string[],
-        options?: { updateHistory: boolean }
+        options?: { updateHistory: boolean; skipPersist?: boolean }
     ) => Promise<void>;
     updateDependency: (
         id: string,
         dependency: Partial<DBDependency>,
-        options?: { updateHistory: boolean }
+        options?: { updateHistory: boolean; skipPersist?: boolean }
     ) => Promise<void>;
 
     // Area operations
     createArea: (attributes?: Partial<Omit<Area, 'id'>>) => Promise<Area>;
     addArea: (
         area: Area,
-        options?: { updateHistory: boolean }
+        options?: { updateHistory: boolean; skipPersist?: boolean }
     ) => Promise<void>;
     addAreas: (
         areas: Area[],
-        options?: { updateHistory: boolean }
+        options?: { updateHistory: boolean; skipPersist?: boolean }
     ) => Promise<void>;
     getArea: (id: string) => Area | null;
     removeArea: (
         id: string,
-        options?: { updateHistory: boolean }
+        options?: { updateHistory: boolean; skipPersist?: boolean }
     ) => Promise<void>;
     removeAreas: (
         ids: string[],
-        options?: { updateHistory: boolean }
+        options?: { updateHistory: boolean; skipPersist?: boolean }
     ) => Promise<void>;
     updateArea: (
         id: string,
         area: Partial<Area>,
-        options?: { updateHistory: boolean }
+        options?: { updateHistory: boolean; skipPersist?: boolean }
     ) => Promise<void>;
 
     // Note operations
     createNote: (attributes?: Partial<Omit<Note, 'id'>>) => Promise<Note>;
     addNote: (
         note: Note,
-        options?: { updateHistory: boolean }
+        options?: { updateHistory: boolean; skipPersist?: boolean }
     ) => Promise<void>;
     addNotes: (
         notes: Note[],
-        options?: { updateHistory: boolean }
+        options?: { updateHistory: boolean; skipPersist?: boolean }
     ) => Promise<void>;
     getNote: (id: string) => Note | null;
     removeNote: (
         id: string,
-        options?: { updateHistory: boolean }
+        options?: { updateHistory: boolean; skipPersist?: boolean }
     ) => Promise<void>;
     removeNotes: (
         ids: string[],
-        options?: { updateHistory: boolean }
+        options?: { updateHistory: boolean; skipPersist?: boolean }
     ) => Promise<void>;
     updateNote: (
         id: string,
         note: Partial<Note>,
-        options?: { updateHistory: boolean }
+        options?: { updateHistory: boolean; skipPersist?: boolean }
     ) => Promise<void>;
 
     // Custom type operations
@@ -308,25 +312,25 @@ export interface ChartDBContext {
     ) => Promise<DBCustomType>;
     addCustomType: (
         customType: DBCustomType,
-        options?: { updateHistory: boolean }
+        options?: { updateHistory: boolean; skipPersist?: boolean }
     ) => Promise<void>;
     addCustomTypes: (
         customTypes: DBCustomType[],
-        options?: { updateHistory: boolean }
+        options?: { updateHistory: boolean; skipPersist?: boolean }
     ) => Promise<void>;
     getCustomType: (id: string) => DBCustomType | null;
     removeCustomType: (
         id: string,
-        options?: { updateHistory: boolean }
+        options?: { updateHistory: boolean; skipPersist?: boolean }
     ) => Promise<void>;
     removeCustomTypes: (
         ids: string[],
-        options?: { updateHistory: boolean }
+        options?: { updateHistory: boolean; skipPersist?: boolean }
     ) => Promise<void>;
     updateCustomType: (
         id: string,
         customType: Partial<DBCustomType>,
-        options?: { updateHistory: boolean }
+        options?: { updateHistory: boolean; skipPersist?: boolean }
     ) => Promise<void>;
 }
 
