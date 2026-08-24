@@ -29,7 +29,7 @@ interface PatchMessage {
 
 interface SelectMessage {
     type: 'select';
-    tableId: string | null;
+    tableIds: string[];
 }
 
 type InboundMessage = JoinMessage | PatchMessage | SelectMessage;
@@ -57,9 +57,10 @@ const parseMessage = (raw: unknown): InboundMessage | null => {
         }
         if (
             data?.type === 'select' &&
-            (data.tableId === null || typeof data.tableId === 'string')
+            Array.isArray(data.tableIds) &&
+            data.tableIds.every((id: unknown) => typeof id === 'string')
         ) {
-            return { type: 'select', tableId: data.tableId };
+            return { type: 'select', tableIds: data.tableIds };
         }
         return null;
     } catch {
@@ -161,7 +162,7 @@ export const attachWebSocketServer = (httpServer: HttpServer) => {
 
                 if (message.type === 'select') {
                     if (!client.diagramId) return;
-                    client.selectedTableId = message.tableId;
+                    client.selectedTableIds = message.tableIds;
                     broadcast(client.diagramId, {
                         type: 'presence',
                         users: presenceFor(client.diagramId),

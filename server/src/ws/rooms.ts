@@ -6,7 +6,7 @@ export interface WsClient {
     email: string;
     name: string | null;
     diagramId?: string;
-    selectedTableId?: string | null;
+    selectedTableIds?: string[];
 }
 
 // In-memory, single-process. Fine for one self-hosted instance; would need
@@ -42,7 +42,7 @@ export const presenceFor = (diagramId: string) => {
         userId: string;
         email: string;
         name: string | null;
-        selectedTableId: string | null;
+        selectedTableIds: string[];
     }[] = [];
     for (const client of room) {
         if (seen.has(client.userId)) continue;
@@ -51,10 +51,28 @@ export const presenceFor = (diagramId: string) => {
             userId: client.userId,
             email: client.email,
             name: client.name,
-            selectedTableId: client.selectedTableId ?? null,
+            selectedTableIds: client.selectedTableIds ?? [],
         });
     }
     return users;
+};
+
+// Called from the REST layer when a user updates their own profile, so
+// anyone sharing a diagram with them sees the new name without either side
+// reconnecting. Returns the diagramIds whose presence needs rebroadcasting.
+export const updateClientName = (
+    userId: string,
+    name: string | null
+): string[] => {
+    const affectedDiagramIds = new Set<string>();
+    for (const [diagramId, room] of rooms) {
+        for (const client of room) {
+            if (client.userId !== userId) continue;
+            client.name = name;
+            affectedDiagramIds.add(diagramId);
+        }
+    }
+    return [...affectedDiagramIds];
 };
 
 export const broadcast = (

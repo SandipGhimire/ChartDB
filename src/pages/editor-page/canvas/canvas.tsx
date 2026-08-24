@@ -538,23 +538,20 @@ export const Canvas: React.FC<CanvasProps> = ({ initialTables }) => {
 
     // Broadcast our own selection so other users see it highlighted live
     useEffect(() => {
-        sendSelect(selectedTableIds[0] ?? null);
+        sendSelect(selectedTableIds);
     }, [selectedTableIds, sendSelect]);
 
     // Other users' current table selections, keyed by table id
     const remoteSelections = useMemo(() => {
         const map = new Map<string, { color: string; label: string }>();
         for (const presenceUser of presence) {
-            if (
-                !presenceUser.selectedTableId ||
-                presenceUser.userId === user?.id
-            ) {
-                continue;
+            if (presenceUser.userId === user?.id) continue;
+            for (const tableId of presenceUser.selectedTableIds) {
+                map.set(tableId, {
+                    color: getUserColor(presenceUser.userId),
+                    label: presenceUser.name ?? presenceUser.email,
+                });
             }
-            map.set(presenceUser.selectedTableId, {
-                color: getUserColor(presenceUser.userId),
-                label: presenceUser.name ?? presenceUser.email,
-            });
         }
         return map;
     }, [presence, user?.id]);

@@ -176,8 +176,9 @@ export const ApiStorageProvider: React.FC<React.PropsWithChildren> = ({
                 method: 'PUT',
                 body: JSON.stringify(table),
             });
+            sendPatch('table', 'update', table.id, table);
         },
-        []
+        [sendPatch]
     );
 
     const deleteTable: StorageContext['deleteTable'] = useCallback(

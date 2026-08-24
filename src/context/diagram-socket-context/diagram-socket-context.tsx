@@ -5,7 +5,7 @@ export interface DiagramPresenceUser {
     userId: string;
     email: string;
     name: string | null;
-    selectedTableId: string | null;
+    selectedTableIds: string[];
 }
 
 export type DiagramPatchAction = 'add' | 'update' | 'remove';
@@ -29,7 +29,7 @@ export interface DiagramSocketContext {
         payload?: unknown
     ) => void;
     subscribePatch: (handler: DiagramPatchHandler) => () => void;
-    sendSelect: (tableId: string | null) => void;
+    sendSelect: (tableIds: string[]) => void;
 }
 
 export const diagramSocketContext = createContext<DiagramSocketContext>({

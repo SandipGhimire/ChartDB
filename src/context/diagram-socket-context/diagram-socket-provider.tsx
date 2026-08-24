@@ -99,10 +99,10 @@ export const DiagramSocketProvider: React.FC<React.PropsWithChildren> = ({
         };
     }, []);
 
-    const sendSelect = useCallback((tableId: string | null) => {
+    const sendSelect = useCallback((tableIds: string[]) => {
         const ws = socketRef.current;
         if (!ws || ws.readyState !== WebSocket.OPEN) return;
-        ws.send(JSON.stringify({ type: 'select', tableId }));
+        ws.send(JSON.stringify({ type: 'select', tableIds }));
     }, []);
 
     const value = useMemo(

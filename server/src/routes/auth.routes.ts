@@ -10,6 +10,7 @@ import {
 } from '../services/auth.service.js';
 import { requireAuth } from '../middleware/require-auth.js';
 import { logAudit } from '../services/audit.service.js';
+import { updateClientName, broadcast, presenceFor } from '../ws/rooms.js';
 import type { User } from '@prisma/client';
 
 export const authRouter = Router();
@@ -130,6 +131,13 @@ authRouter.patch('/me', requireAuth, async (req, res) => {
         where: { id: req.user!.id },
         data: { name: parsed.data.name },
     });
+
+    for (const diagramId of updateClientName(user.id, user.name)) {
+        broadcast(diagramId, {
+            type: 'presence',
+            users: presenceFor(diagramId),
+        });
+    }
 
     logAudit({
         actorUserId: user.id,
