@@ -16,20 +16,8 @@ import {
 import { Avatar, AvatarFallback } from '@/components/avatar/avatar';
 import { Badge } from '@/components/badge/badge';
 import { useAuth } from '@/hooks/use-auth';
+import { getInitials } from '@/lib/utils';
 import { ShieldCheck, LogOut, UserCog } from 'lucide-react';
-
-const getInitials = (name: string | null, email: string): string => {
-    if (name) {
-        const parts = name.trim().split(/\s+/).filter(Boolean);
-        if (parts.length >= 2) {
-            return (parts[0][0] + parts[1][0]).toUpperCase();
-        }
-        if (parts.length === 1) {
-            return parts[0].slice(0, 2).toUpperCase();
-        }
-    }
-    return email.slice(0, 2).toUpperCase();
-};
 
 export interface UserMenuProps {}
 

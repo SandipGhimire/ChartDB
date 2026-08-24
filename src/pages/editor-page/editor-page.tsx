@@ -25,6 +25,8 @@ import { TopNavbarMock } from './top-navbar/top-navbar-mock';
 import { DiagramFilterProvider } from '@/context/diagram-filter-context/diagram-filter-provider';
 import { DiagramRoleProvider } from '@/context/diagram-role-context/diagram-role-provider';
 import { useDiagramRole } from '@/hooks/use-diagram-role';
+import { DiagramSocketProvider } from '@/context/diagram-socket-context/diagram-socket-provider';
+import { useDiagramPatchSync } from '@/context/chartdb-context/use-diagram-patch-sync';
 
 export const EditorDesktopLayoutLazy = React.lazy(
     () => import('./editor-desktop-layout')
@@ -38,6 +40,7 @@ const EditorPageComponent: React.FC = () => {
     const { diagramName } = useChartDB();
     const { isMd: isDesktop } = useBreakpoint('md');
     const { initialDiagram } = useDiagramLoader();
+    useDiagramPatchSync();
 
     return (
         <>
@@ -111,15 +114,17 @@ export const EditorPage: React.FC = () => (
             <ThemeProvider>
                 <FullScreenLoaderProvider>
                     <LayoutProvider>
-                        <StorageProvider>
-                            <ConfigProvider>
-                                <RedoUndoStackProvider>
-                                    <DiffProvider>
-                                        <EditorPageChartDB />
-                                    </DiffProvider>
-                                </RedoUndoStackProvider>
-                            </ConfigProvider>
-                        </StorageProvider>
+                        <DiagramSocketProvider>
+                            <StorageProvider>
+                                <ConfigProvider>
+                                    <RedoUndoStackProvider>
+                                        <DiffProvider>
+                                            <EditorPageChartDB />
+                                        </DiffProvider>
+                                    </RedoUndoStackProvider>
+                                </ConfigProvider>
+                            </StorageProvider>
+                        </DiagramSocketProvider>
                     </LayoutProvider>
                 </FullScreenLoaderProvider>
             </ThemeProvider>

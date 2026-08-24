@@ -38,6 +38,12 @@ export default defineConfig({
                     'http://localhost:3001',
                 changeOrigin: true,
             },
+            '/ws': {
+                target:
+                    process.env.VITE_API_PROXY_TARGET ??
+                    'http://localhost:3001',
+                ws: true,
+            },
         },
     },
     build: {

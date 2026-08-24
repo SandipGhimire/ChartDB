@@ -12,6 +12,7 @@ import type { Area } from '@/lib/domain/area';
 import type { DBCustomType } from '@/lib/domain/db-custom-type';
 import type { DiagramFilter } from '@/lib/domain/diagram-filter/diagram-filter';
 import type { Note } from '@/lib/domain/note';
+import { useDiagramSocket } from '@/hooks/use-diagram-socket';
 
 interface ApiFetchOptions extends RequestInit {
     // Some StorageContext getters return `undefined` for a missing record
@@ -85,6 +86,8 @@ const buildIncludeQuery = (options?: {
 export const ApiStorageProvider: React.FC<React.PropsWithChildren> = ({
     children,
 }) => {
+    const { sendPatch } = useDiagramSocket();
+
     // Config operations
     const getConfig: StorageContext['getConfig'] = useCallback(async () => {
         const { config } = await apiFetch<{ config: ChartDBConfig }>('/config');
@@ -140,8 +143,9 @@ export const ApiStorageProvider: React.FC<React.PropsWithChildren> = ({
                 method: 'POST',
                 body: JSON.stringify(table),
             });
+            sendPatch('table', 'add', table.id, table);
         },
-        []
+        [sendPatch]
     );
 
     const getTable: StorageContext['getTable'] = useCallback(
@@ -161,8 +165,9 @@ export const ApiStorageProvider: React.FC<React.PropsWithChildren> = ({
                 method: 'PATCH',
                 body: JSON.stringify(attributes),
             });
+            sendPatch('table', 'update', id, attributes);
         },
-        []
+        [sendPatch]
     );
 
     const putTable: StorageContext['putTable'] = useCallback(
@@ -180,8 +185,9 @@ export const ApiStorageProvider: React.FC<React.PropsWithChildren> = ({
             await apiFetch(`/diagrams/${diagramId}/tables/${id}`, {
                 method: 'DELETE',
             });
+            sendPatch('table', 'remove', id);
         },
-        []
+        [sendPatch]
     );
 
     const listTables: StorageContext['listTables'] = useCallback(
@@ -208,8 +214,9 @@ export const ApiStorageProvider: React.FC<React.PropsWithChildren> = ({
                 method: 'POST',
                 body: JSON.stringify(relationship),
             });
+            sendPatch('relationship', 'add', relationship.id, relationship);
         },
-        []
+        [sendPatch]
     );
 
     const getRelationship: StorageContext['getRelationship'] = useCallback(
@@ -224,19 +231,27 @@ export const ApiStorageProvider: React.FC<React.PropsWithChildren> = ({
     );
 
     const updateRelationship: StorageContext['updateRelationship'] =
-        useCallback(async ({ id, attributes }) => {
-            await apiFetch(`/relationships/${id}`, {
-                method: 'PATCH',
-                body: JSON.stringify(attributes),
-            });
-        }, []);
+        useCallback(
+            async ({ id, attributes }) => {
+                await apiFetch(`/relationships/${id}`, {
+                    method: 'PATCH',
+                    body: JSON.stringify(attributes),
+                });
+                sendPatch('relationship', 'update', id, attributes);
+            },
+            [sendPatch]
+        );
 
     const deleteRelationship: StorageContext['deleteRelationship'] =
-        useCallback(async ({ diagramId, id }) => {
-            await apiFetch(`/diagrams/${diagramId}/relationships/${id}`, {
-                method: 'DELETE',
-            });
-        }, []);
+        useCallback(
+            async ({ diagramId, id }) => {
+                await apiFetch(`/diagrams/${diagramId}/relationships/${id}`, {
+                    method: 'DELETE',
+                });
+                sendPatch('relationship', 'remove', id);
+            },
+            [sendPatch]
+        );
 
     const listRelationships: StorageContext['listRelationships'] = useCallback(
         async (diagramId) => {
@@ -262,8 +277,9 @@ export const ApiStorageProvider: React.FC<React.PropsWithChildren> = ({
                 method: 'POST',
                 body: JSON.stringify(dependency),
             });
+            sendPatch('dependency', 'add', dependency.id, dependency);
         },
-        []
+        [sendPatch]
     );
 
     const getDependency: StorageContext['getDependency'] = useCallback(
@@ -283,8 +299,9 @@ export const ApiStorageProvider: React.FC<React.PropsWithChildren> = ({
                 method: 'PATCH',
                 body: JSON.stringify(attributes),
             });
+            sendPatch('dependency', 'update', id, attributes);
         },
-        []
+        [sendPatch]
     );
 
     const deleteDependency: StorageContext['deleteDependency'] = useCallback(
@@ -292,8 +309,9 @@ export const ApiStorageProvider: React.FC<React.PropsWithChildren> = ({
             await apiFetch(`/diagrams/${diagramId}/dependencies/${id}`, {
                 method: 'DELETE',
             });
+            sendPatch('dependency', 'remove', id);
         },
-        []
+        [sendPatch]
     );
 
     const listDependencies: StorageContext['listDependencies'] = useCallback(
@@ -320,8 +338,9 @@ export const ApiStorageProvider: React.FC<React.PropsWithChildren> = ({
                 method: 'POST',
                 body: JSON.stringify(area),
             });
+            sendPatch('area', 'add', area.id, area);
         },
-        []
+        [sendPatch]
     );
 
     const getArea: StorageContext['getArea'] = useCallback(
@@ -341,8 +360,9 @@ export const ApiStorageProvider: React.FC<React.PropsWithChildren> = ({
                 method: 'PATCH',
                 body: JSON.stringify(attributes),
             });
+            sendPatch('area', 'update', id, attributes);
         },
-        []
+        [sendPatch]
     );
 
     const deleteArea: StorageContext['deleteArea'] = useCallback(
@@ -350,8 +370,9 @@ export const ApiStorageProvider: React.FC<React.PropsWithChildren> = ({
             await apiFetch(`/diagrams/${diagramId}/areas/${id}`, {
                 method: 'DELETE',
             });
+            sendPatch('area', 'remove', id);
         },
-        []
+        [sendPatch]
     );
 
     const listAreas: StorageContext['listAreas'] = useCallback(
@@ -378,8 +399,9 @@ export const ApiStorageProvider: React.FC<React.PropsWithChildren> = ({
                 method: 'POST',
                 body: JSON.stringify(customType),
             });
+            sendPatch('customType', 'add', customType.id, customType);
         },
-        []
+        [sendPatch]
     );
 
     const getCustomType: StorageContext['getCustomType'] = useCallback(
@@ -399,8 +421,9 @@ export const ApiStorageProvider: React.FC<React.PropsWithChildren> = ({
                 method: 'PATCH',
                 body: JSON.stringify(attributes),
             });
+            sendPatch('customType', 'update', id, attributes);
         },
-        []
+        [sendPatch]
     );
 
     const deleteCustomType: StorageContext['deleteCustomType'] = useCallback(
@@ -408,8 +431,9 @@ export const ApiStorageProvider: React.FC<React.PropsWithChildren> = ({
             await apiFetch(`/diagrams/${diagramId}/custom-types/${id}`, {
                 method: 'DELETE',
             });
+            sendPatch('customType', 'remove', id);
         },
-        []
+        [sendPatch]
     );
 
     const listCustomTypes: StorageContext['listCustomTypes'] = useCallback(
@@ -436,8 +460,9 @@ export const ApiStorageProvider: React.FC<React.PropsWithChildren> = ({
                 method: 'POST',
                 body: JSON.stringify(note),
             });
+            sendPatch('note', 'add', note.id, note);
         },
-        []
+        [sendPatch]
     );
 
     const getNote: StorageContext['getNote'] = useCallback(
@@ -457,8 +482,9 @@ export const ApiStorageProvider: React.FC<React.PropsWithChildren> = ({
                 method: 'PATCH',
                 body: JSON.stringify(attributes),
             });
+            sendPatch('note', 'update', id, attributes);
         },
-        []
+        [sendPatch]
     );
 
     const deleteNote: StorageContext['deleteNote'] = useCallback(
@@ -466,8 +492,9 @@ export const ApiStorageProvider: React.FC<React.PropsWithChildren> = ({
             await apiFetch(`/diagrams/${diagramId}/notes/${id}`, {
                 method: 'DELETE',
             });
+            sendPatch('note', 'remove', id);
         },
-        []
+        [sendPatch]
     );
 
     const listNotes: StorageContext['listNotes'] = useCallback(
@@ -589,8 +616,9 @@ export const ApiStorageProvider: React.FC<React.PropsWithChildren> = ({
                 method: 'PATCH',
                 body: JSON.stringify(attributes),
             });
+            sendPatch('diagram', 'update', id, attributes);
         },
-        []
+        [sendPatch]
     );
 
     const deleteDiagram: StorageContext['deleteDiagram'] = useCallback(
