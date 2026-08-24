@@ -44,7 +44,7 @@ export const PresenceStack: React.FC<PresenceStackProps> = () => {
                                 </AvatarFallback>
                             </Avatar>
                         </TooltipTrigger>
-                        <TooltipContent>
+                        <TooltipContent side="bottom">
                             {presenceUser.name ?? presenceUser.email}
                         </TooltipContent>
                     </Tooltip>
