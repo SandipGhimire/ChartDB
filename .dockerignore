@@ -2,6 +2,10 @@
 node_modules
 dist
 build
+stats
+
+# Backend lives in its own image, not needed in the frontend build context
+server
 
 # Ignore logs
 npm-debug.log*

@@ -7,6 +7,14 @@ const envSchema = z.object({
     PORT: z.coerce.number().int().positive().default(3001),
     DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
     SESSION_COOKIE_NAME: z.string().default('chartdb_sid'),
+    // Cookie's Secure flag. Defaults to NODE_ENV, but self-hosted deploys
+    // behind plain HTTP (no TLS-terminating reverse proxy) need to opt out
+    // explicitly or the browser will silently refuse to store the session
+    // cookie under production settings.
+    COOKIE_SECURE: z.preprocess(
+        (v) => (v === '' || v === undefined ? undefined : v === 'true'),
+        z.boolean().optional()
+    ),
     SESSION_TTL_HOURS: z.coerce
         .number()
         .int()

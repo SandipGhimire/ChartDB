@@ -38,7 +38,7 @@ const serializeUser = (user: User) => ({
 const cookieOptions = {
     httpOnly: true,
     sameSite: 'lax' as const,
-    secure: isProduction,
+    secure: env.COOKIE_SECURE ?? isProduction,
     path: '/',
 };
 
