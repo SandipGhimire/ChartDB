@@ -25,7 +25,8 @@ import type { ChartDBEvent } from '../chartdb-context/chartdb-context';
 export const DiagramFilterProvider: React.FC<React.PropsWithChildren> = ({
     children,
 }) => {
-    const { diagramId, tables, schemas, databaseType, events } = useChartDB();
+    const { diagramId, tables, schemas, databaseType, events, readonly } =
+        useChartDB();
     const { getDiagramFilter, updateDiagramFilter } = useStorage();
     const [filter, setFilter] = useState<DiagramFilter>({});
     const [loading, setLoading] = useState<boolean>(true);
@@ -51,10 +52,11 @@ export const DiagramFilterProvider: React.FC<React.PropsWithChildren> = ({
     const diagramIdOfLoadedFilter = useRef<string | null>(null);
 
     useEffect(() => {
+        if (readonly) return;
         if (diagramId && diagramId === diagramIdOfLoadedFilter.current) {
             updateDiagramFilter(diagramId, filter);
         }
-    }, [diagramId, filter, updateDiagramFilter]);
+    }, [diagramId, filter, updateDiagramFilter, readonly]);
 
     // Reset filter when diagram changes
     useEffect(() => {
