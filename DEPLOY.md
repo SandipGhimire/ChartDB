@@ -45,7 +45,7 @@ sudo cp deploy/chartdb-server.service /etc/systemd/system/
 sudo systemctl daemon-reload
 sudo systemctl enable --now chartdb-server
 sudo systemctl status chartdb-server
-curl http://127.0.0.1:3001/api/health   # {"status":"ok"}
+curl http://127.0.0.1:9001/api/health   # {"status":"ok"}
 ```
 
 `ExecStartPre` runs `prisma migrate deploy` on every start, so schema is always current
