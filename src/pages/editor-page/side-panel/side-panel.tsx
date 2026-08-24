@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback, useState } from 'react';
 import {
     Select,
     SelectContent,
@@ -7,6 +7,15 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/select/select';
+import { Button } from '@/components/button/button';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from '@/components/tooltip/tooltip';
+import { useToast } from '@/components/toast/use-toast';
+import { RefreshCw } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { TablesSection } from './tables-section/tables-section';
 import { useLayout } from '@/hooks/use-layout';
 import type { SidebarSection } from '@/context/layout-context/layout-context';
@@ -23,12 +32,53 @@ export interface SidePanelProps {}
 
 export const SidePanel: React.FC<SidePanelProps> = () => {
     const { t } = useTranslation();
-    const { databaseType } = useChartDB();
+    const { databaseType, diagramId, loadDiagram } = useChartDB();
     const { selectSidebarSection, selectedSidebarSection } = useLayout();
     const { isMd: isDesktop } = useBreakpoint('md');
+    const { toast } = useToast();
+    const [isRefreshing, setIsRefreshing] = useState(false);
+
+    const handleRefresh = useCallback(async () => {
+        if (!diagramId || isRefreshing) return;
+        setIsRefreshing(true);
+        try {
+            await loadDiagram(diagramId);
+            toast({ title: t('side_panel.refreshed') });
+        } catch {
+            toast({
+                title: t('side_panel.refresh_diagram'),
+                variant: 'destructive',
+            });
+        } finally {
+            setIsRefreshing(false);
+        }
+    }, [diagramId, loadDiagram, isRefreshing, toast, t]);
 
     return (
         <aside className="flex h-full flex-col overflow-hidden">
+            <div className="flex items-center justify-end border-b px-1 py-0.5">
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="size-7"
+                            onClick={handleRefresh}
+                            disabled={isRefreshing}
+                        >
+                            <RefreshCw
+                                className={cn(
+                                    'size-3.5',
+                                    isRefreshing && 'animate-spin'
+                                )}
+                            />
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                        {t('side_panel.refresh_diagram')}
+                    </TooltipContent>
+                </Tooltip>
+            </div>
             {!isDesktop ? (
                 <div className="flex justify-center border-b pt-0.5">
                     <Select

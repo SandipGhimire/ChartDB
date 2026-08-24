@@ -113,6 +113,8 @@ export const zh_TW: LanguageTranslation = {
 
         side_panel: {
             view_all_options: '顯示所有選項...',
+            refresh_diagram: 'Refresh diagram',
+            refreshed: 'Diagram refreshed',
             tables_section: {
                 tables: '表格',
                 add_table: '新增表格',

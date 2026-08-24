@@ -117,6 +117,8 @@ export const hi: LanguageTranslation = {
 
         side_panel: {
             view_all_options: 'सभी विकल्प देखें...',
+            refresh_diagram: 'Refresh diagram',
+            refreshed: 'Diagram refreshed',
             tables_section: {
                 tables: 'तालिकाएँ',
                 add_table: 'तालिका जोड़ें',

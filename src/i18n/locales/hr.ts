@@ -115,6 +115,8 @@ export const hr: LanguageTranslation = {
 
         side_panel: {
             view_all_options: 'Prikaži sve opcije...',
+            refresh_diagram: 'Refresh diagram',
+            refreshed: 'Diagram refreshed',
             tables_section: {
                 tables: 'Tablice',
                 add_table: 'Dodaj tablicu',

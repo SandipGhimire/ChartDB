@@ -116,6 +116,8 @@ export const vi: LanguageTranslation = {
 
         side_panel: {
             view_all_options: 'Xem tất cả tùy chọn...',
+            refresh_diagram: 'Refresh diagram',
+            refreshed: 'Diagram refreshed',
             tables_section: {
                 tables: 'Bảng',
                 add_table: 'Thêm bảng',

@@ -119,6 +119,8 @@ export const ja: LanguageTranslation = {
 
         side_panel: {
             view_all_options: 'すべてのオプションを表示...',
+            refresh_diagram: 'Refresh diagram',
+            refreshed: 'Diagram refreshed',
             tables_section: {
                 tables: 'テーブル',
                 add_table: 'テーブルを追加',

@@ -116,6 +116,8 @@ export const tr: LanguageTranslation = {
         copied: 'Kopyalandı!',
         side_panel: {
             view_all_options: 'Tüm Seçenekleri Gör...',
+            refresh_diagram: 'Refresh diagram',
+            refreshed: 'Diagram refreshed',
             tables_section: {
                 tables: 'Tablolar',
                 add_table: 'Tablo Ekle',

@@ -117,6 +117,8 @@ export const bn: LanguageTranslation = {
 
         side_panel: {
             view_all_options: 'সমস্ত বিকল্প দেখুন...',
+            refresh_diagram: 'Refresh diagram',
+            refreshed: 'Diagram refreshed',
             tables_section: {
                 tables: 'টেবিল',
                 add_table: 'টেবিল যোগ করুন',

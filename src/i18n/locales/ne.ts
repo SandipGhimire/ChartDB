@@ -117,6 +117,8 @@ export const ne: LanguageTranslation = {
 
         side_panel: {
             view_all_options: 'सबै विकल्पहरू हेर्नुहोस्',
+            refresh_diagram: 'Refresh diagram',
+            refreshed: 'Diagram refreshed',
             tables_section: {
                 tables: 'तालिकाहरू',
                 add_table: 'तालिका थप्नुहोस्',

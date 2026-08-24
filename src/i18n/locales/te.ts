@@ -117,6 +117,8 @@ export const te: LanguageTranslation = {
 
         side_panel: {
             view_all_options: 'అన్ని ఎంపికలను చూడండి...',
+            refresh_diagram: 'Refresh diagram',
+            refreshed: 'Diagram refreshed',
             tables_section: {
                 tables: 'పట్టికలు',
                 add_table: 'పట్టికను జోడించు',

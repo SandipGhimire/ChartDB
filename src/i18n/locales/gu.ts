@@ -117,6 +117,8 @@ export const gu: LanguageTranslation = {
 
         side_panel: {
             view_all_options: 'બધા વિકલ્પો જુઓ...',
+            refresh_diagram: 'Refresh diagram',
+            refreshed: 'Diagram refreshed',
             tables_section: {
                 tables: 'ટેબલ્સ',
                 add_table: 'ટેબલ ઉમેરો',

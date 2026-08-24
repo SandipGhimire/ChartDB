@@ -116,6 +116,8 @@ export const ko_KR: LanguageTranslation = {
 
         side_panel: {
             view_all_options: '전체 옵션 보기...',
+            refresh_diagram: 'Refresh diagram',
+            refreshed: 'Diagram refreshed',
             tables_section: {
                 tables: '테이블',
                 add_table: '테이블 추가',

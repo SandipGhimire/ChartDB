@@ -116,6 +116,8 @@ export const ar: LanguageTranslation = {
 
         side_panel: {
             view_all_options: '...عرض جميع الخيارات',
+            refresh_diagram: 'Refresh diagram',
+            refreshed: 'Diagram refreshed',
             tables_section: {
                 tables: 'الجداول',
                 add_table: 'إضافة جدول',

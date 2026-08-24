@@ -117,6 +117,8 @@ export const pt_BR: LanguageTranslation = {
 
         side_panel: {
             view_all_options: 'Ver todas as Opções...',
+            refresh_diagram: 'Refresh diagram',
+            refreshed: 'Diagram refreshed',
             tables_section: {
                 tables: 'Tabelas',
                 add_table: 'Adicionar Tabela',

@@ -114,6 +114,8 @@ export const ru: LanguageTranslation = {
 
         side_panel: {
             view_all_options: 'Просмотреть все варианты...',
+            refresh_diagram: 'Refresh diagram',
+            refreshed: 'Diagram refreshed',
             tables_section: {
                 tables: 'Таблицы',
                 add_table: 'Добавить таблицу',

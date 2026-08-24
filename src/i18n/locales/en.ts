@@ -115,6 +115,8 @@ export const en = {
 
         side_panel: {
             view_all_options: 'View all Options...',
+            refresh_diagram: 'Refresh diagram',
+            refreshed: 'Diagram refreshed',
             tables_section: {
                 tables: 'Tables',
                 add_table: 'Add Table',

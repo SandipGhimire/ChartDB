@@ -116,6 +116,8 @@ export const id_ID: LanguageTranslation = {
 
         side_panel: {
             view_all_options: 'Tampilkan Semua Pilihan...',
+            refresh_diagram: 'Refresh diagram',
+            refreshed: 'Diagram refreshed',
             tables_section: {
                 tables: 'Tabel',
                 add_table: 'Tambah Tabel',

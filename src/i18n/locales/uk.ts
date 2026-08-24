@@ -115,6 +115,8 @@ export const uk: LanguageTranslation = {
 
         side_panel: {
             view_all_options: 'Переглянути всі параметри…',
+            refresh_diagram: 'Refresh diagram',
+            refreshed: 'Diagram refreshed',
             tables_section: {
                 tables: 'Таблиці',
                 add_table: 'Додати таблицю',
