@@ -2054,8 +2054,74 @@ export const ChartDBProvider: React.FC<
     const updateDiagramData: ChartDBContext['updateDiagramData'] = useCallback(
         async (diagram, options) => {
             const st = options?.forceUpdateStorage ? storageDB : db;
-            await st.deleteDiagram(diagram.id);
-            await st.addDiagram({ diagram });
+
+            // Delete child resources without deleting the parent diagram record,
+            // preserving diagram members, permissions, and roles.
+            await Promise.all([
+                st.deleteDiagramTables(diagram.id),
+                st.deleteDiagramRelationships(diagram.id),
+                st.deleteDiagramDependencies(diagram.id),
+                st.deleteDiagramAreas(diagram.id),
+                st.deleteDiagramCustomTypes(diagram.id),
+                st.deleteDiagramNotes(diagram.id),
+            ]);
+
+            await st.updateDiagram({
+                id: diagram.id,
+                attributes: {
+                    name: diagram.name,
+                    databaseType: diagram.databaseType,
+                    databaseEdition: diagram.databaseEdition,
+                    updatedAt: diagram.updatedAt ?? new Date(),
+                },
+            });
+
+            const promises: Promise<unknown>[] = [];
+
+            const tables = diagram.tables ?? [];
+            promises.push(
+                ...tables.map((table) =>
+                    st.addTable({ diagramId: diagram.id, table })
+                )
+            );
+
+            const relationships = diagram.relationships ?? [];
+            promises.push(
+                ...relationships.map((relationship) =>
+                    st.addRelationship({ diagramId: diagram.id, relationship })
+                )
+            );
+
+            const dependencies = diagram.dependencies ?? [];
+            promises.push(
+                ...dependencies.map((dependency) =>
+                    st.addDependency({ diagramId: diagram.id, dependency })
+                )
+            );
+
+            const areas = diagram.areas ?? [];
+            promises.push(
+                ...areas.map((area) =>
+                    st.addArea({ diagramId: diagram.id, area })
+                )
+            );
+
+            const customTypes = diagram.customTypes ?? [];
+            promises.push(
+                ...customTypes.map((customType) =>
+                    st.addCustomType({ diagramId: diagram.id, customType })
+                )
+            );
+
+            const notes = diagram.notes ?? [];
+            promises.push(
+                ...notes.map((note) =>
+                    st.addNote({ diagramId: diagram.id, note })
+                )
+            );
+
+            await Promise.all(promises);
+
             loadDiagramFromData(diagram);
         },
         [db, storageDB, loadDiagramFromData]
